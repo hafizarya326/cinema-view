@@ -66,14 +66,13 @@ Screen visibility score (0 sampai 100):
 | Baris | Kategori | Harga |
 |---|---|---|
 | A sampai C | Front | Rp40.000 |
-| D sampai E | Standard | Rp50.000 |
-| F sampai H | Premium | Rp65.000 |
-| I sampai J | Back | Rp50.000 |
+| D sampai F | Standard | Rp50.000 |
+| G sampai J | Premium | Rp65.000 |
 
 ## Data model (TypeScript, di src/types)
 
   type SeatStatus = "available" | "selected" | "occupied" | "unavailable";
-  type SeatCategory = "front" | "standard" | "premium" | "back";
+  type SeatCategory = "front" | "standard" | "premium";
 
   interface Seat {
     id: string;            // contoh: "F7"

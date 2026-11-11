@@ -1,5 +1,31 @@
 export type MovieStatus = "now_showing" | "coming_soon";
 
+export type SeatStatus = "available" | "selected" | "occupied" | "unavailable";
+export type SeatCategory = "front" | "standard" | "premium";
+
+export interface Seat {
+  id: string; // e.g. "F7"
+  row: string; // "A" to "J"
+  number: number; // 1 to 14
+  x: number;
+  y: number;
+  z: number; // eye position in meters
+  category: SeatCategory;
+  price: number;
+  status: SeatStatus;
+}
+
+export interface ViewingInfo {
+  distance: number;
+  horizontalFov: number;
+  verticalFov: number;
+  neckTilt: number;
+  azimuth: number;
+  visibilityScore: number;
+  visibilityLabel: "Excellent" | "Good" | "Fair" | "Poor";
+}
+
+
 export interface Movie {
   id: string;
   title: string;
