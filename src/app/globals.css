@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Design tokens (Tailwind v4: theme lives in CSS, no tailwind.config.ts) */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: #0a0a0b;
+  --color-surface: #141416;
+  --color-border: #26262b;
+  --color-foreground: #f5f5f7;
+  --color-muted: #9a9aa3;
+  --color-accent: #e50914;
+
+  --color-seat-available: #3f3f46;
+  --color-seat-selected: #22c55e;
+  --color-seat-occupied: #7f1d1d;
+  --color-seat-unavailable: #27272a;
+
+  --radius-card: 1rem;
+}
