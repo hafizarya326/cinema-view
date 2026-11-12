@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SelectedSeatsPanel from "@/components/booking/SelectedSeatsPanel";
 import SeatMap from "@/components/seatmap/SeatMap";
+import { applyBookedSeats } from "@/lib/bookings";
 import { formatDateLabel, showtimesForDate } from "@/lib/showtimes";
 import { generateSeats } from "@/lib/studio/seats";
 import { useBookingStore } from "@/store/bookingStore";
@@ -44,7 +45,11 @@ export default function BookingClient({
   const showtime = storedShowtime?.movieId === movie.id ? storedShowtime : null;
   const dateKey = pickedDate ?? showtime?.date ?? dateKeys[0];
 
-  const seats = useMemo(() => (showtime ? generateSeats(showtime.id) : []), [showtime]);
+  // Confirmed seats come back occupied; recomputed whenever the showtime changes.
+  const seats = useMemo(
+    () => (showtime ? applyBookedSeats(generateSeats(showtime.id), showtime.id) : []),
+    [showtime],
+  );
   const selectedSeats = useMemo(
     () => seats.filter((seat) => selectedSeatIds.includes(seat.id)),
     [seats, selectedSeatIds],
