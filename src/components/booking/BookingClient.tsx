@@ -73,7 +73,7 @@ export default function BookingClient({
               key={key}
               type="button"
               onClick={() => pickDate(key)}
-              className={`shrink-0 rounded-2xl border px-4 py-2 text-sm capitalize transition-colors ${
+              className={`inline-flex min-h-10 shrink-0 items-center rounded-2xl border px-4 text-sm capitalize transition-colors ${
                 key === dateKey
                   ? "border-accent bg-accent text-foreground"
                   : "border-border bg-surface text-muted hover:text-foreground"
@@ -108,7 +108,7 @@ export default function BookingClient({
                 key={item.id}
                 type="button"
                 onClick={() => setShowtime(item)}
-                className={`rounded-2xl border px-4 py-2 text-sm transition-colors ${
+                className={`min-h-10 rounded-2xl border px-4 text-sm transition-colors ${
                   item.id === showtime?.id
                     ? "border-accent bg-accent text-foreground"
                     : "border-border bg-surface text-muted hover:text-foreground"

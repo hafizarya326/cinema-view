@@ -29,7 +29,10 @@ export default function ViewingInfoPanel({
           Belum ada kursi aktif. Pilih kursi di peta kursi supaya jarak, sudut pandang, dan skor
           visibilitas bisa dihitung.
         </p>
-        <Link href={backHref} className="w-fit text-sm text-foreground underline">
+        <Link
+          href={backHref}
+          className="inline-flex min-h-10 w-fit items-center text-sm text-foreground underline"
+        >
           Kembali ke peta kursi
         </Link>
       </section>

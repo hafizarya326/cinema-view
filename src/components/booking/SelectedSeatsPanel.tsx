@@ -42,7 +42,7 @@ export default function SelectedSeatsPanel({
           <button
             type="button"
             onClick={onClear}
-            className="text-xs text-muted underline transition-colors hover:text-foreground"
+            className="inline-flex min-h-10 items-center text-xs text-muted underline transition-colors hover:text-foreground"
           >
             Hapus semua kursi
           </button>

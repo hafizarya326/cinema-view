@@ -132,7 +132,10 @@ export default function CheckoutClient() {
           Belum ada kursi yang dipilih, jadi belum ada yang bisa dikonfirmasi. Mulai dari memilih
           film dan jadwal tayang dulu.
         </p>
-        <Link href="/movies" className="text-foreground underline">
+        <Link
+          href="/movies"
+          className="inline-flex min-h-10 items-center text-foreground underline"
+        >
           Pilih film
         </Link>
       </div>
@@ -182,7 +185,10 @@ export default function CheckoutClient() {
             Kursi berikut sudah tidak tersedia: {conflicts.join(", ")}. Kursi itu sudah dihapus dari
             pilihan, silakan pilih kursi lain.
           </p>
-          <Link href={`/booking/${showtime.movieId}`} className="text-foreground underline">
+          <Link
+            href={`/booking/${showtime.movieId}`}
+            className="inline-flex min-h-10 items-center text-foreground underline"
+          >
             Kembali ke peta kursi
           </Link>
         </div>

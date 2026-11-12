@@ -1,34 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cinema View — See Your Seat Before You Book
 
-## Getting Started
+Website pemesanan tiket bioskop dengan pemilihan kursi interaktif dan preview 3D dari sudut pandang kursi. Fitur utamanya: kamera 3D pindah ke posisi mata penonton di kursi yang dipilih, jadi kamu bisa melihat pemandangan dari kursimu sebelum memesan.
 
-First, run the development server:
+Semua data bersifat mock: tidak ada backend, autentikasi, pembayaran, atau admin panel. Booking disimpan di `localStorage` sebagai tiruan.
+
+## Stack
+
+- Next.js (App Router) + React + TypeScript (strict)
+- Tailwind CSS v4 (token desain di `src/app/globals.css`)
+- Three.js + `@react-three/fiber` + `@react-three/drei`
+- Zustand (state + persist `sessionStorage`)
+- Vitest + React Testing Library
+
+## Cara menjalankan
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install      # pasang dependency
+npm run dev      # dev server (http://localhost:3000)
+npm run test     # jalankan unit test (vitest run)
+npm run lint     # eslint
+npm run build    # build produksi
+npm run start    # jalankan hasil build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Struktur folder
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+  app/                     # route: /, /movies, /movies/[id], /booking/[id],
+                           #        /booking/preview, /checkout
+  components/
+    ui/                    # Navbar, Footer
+    movie/                 # katalog + kartu film + input pencarian
+    booking/               # panel kursi terpilih, panel viewing info, checkout
+    seatmap/               # peta kursi 2D (roving tabindex + tooltip)
+    preview3d/             # Canvas 3D, kamera, error boundary scene
+  data/                    # movies.ts, showtimes.ts (data mock)
+  lib/
+    studio/                # config.ts, seats.ts, viewing.ts, camera.ts, scene.ts
+    booking.ts             # format harga/angka, label kursi
+    bookings.ts            # mock booking storage + applyBookedSeats
+    movies.ts, showtimes.ts
+  store/                   # bookingStore.ts (Zustand + persist)
+  types/                   # tipe bersama
+```
 
-## Learn More
+## Fitur MVP
 
-To learn more about Next.js, take a look at the following resources:
+- Katalog film dengan pencarian judul dan filter genre.
+- Detail film: poster, sinopsis, trailer, tombol booking.
+- Pilih tanggal dan jam tayang (jadwal dibuat 7 hari ke depan).
+- Peta kursi 2D: status available/selected/occupied/unavailable, tooltip kategori + harga + label visibilitas, navigasi keyboard (panah, Home/End, Enter/Space).
+- Preview 3D studio dengan `InstancedMesh` 140 kursi, mode Overview (orbit) dan Seat View (kamera di posisi mata kursi, look-around lewat drag atau tombol panah; batas yaw ±70° dan pitch −30°..+30°). Fallback peta kursi 2D jika WebGL tidak tersedia atau scene gagal.
+- Panel info pandangan: jarak ke layar, FOV horizontal/vertikal, neck tilt, skor visibilitas 0–100 beserta label.
+- Maksimal 6 kursi per pesanan; kursi terisi di-seed deterministik dari id jadwal.
+- Checkout: ringkasan pesanan, validasi ulang ketersediaan kursi, kode booking `CV-XXXXXX`, lalu kursi yang dikonfirmasi tampil terisi di peta kursi dan scene 3D.
+- Responsif mobile-first, UI Bahasa Indonesia.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Spesifikasi studio
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Semua angka geometri hidup di [`src/lib/studio/config.ts`](src/lib/studio/config.ts) — komponen tidak boleh meng-hardcode angka geometri.
 
-## Deploy on Vercel
+| Parameter | Nilai |
+|---|---|
+| Lebar layar | 12.0 m |
+| Tinggi layar | 5.0 m |
+| Tepi bawah layar (y) | 1.5 m (pusat layar y = 4.0 m) |
+| Jumlah baris | 10 (A–J, A paling depan) |
+| Kursi per baris | 14 |
+| Jarak antar kursi (pitch) | 0.55 m |
+| Jarak layar ke baris A (z) | 4.0 m |
+| Jarak antar baris | 1.1 m |
+| Kenaikan lantai per baris (rake) | 0.25 m |
+| Tinggi mata dari lantai | 1.15 m |
+| FOV kamera | 60° |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Posisi kursi (row index `i` dari 0, nomor kursi `n` dari 1, `N` = kursi per baris):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `x = (n - (N + 1) / 2) * SEAT_PITCH`
+- `z = FIRST_ROW_Z + i * ROW_SPACING`
+- `floorY = i * RAKE`, `eyeY = floorY + EYE_HEIGHT`
+- Posisi kamera = `(x, eyeY, z)`, target awal = pusat layar `(0, SCREEN_CENTER_Y, 0)`
+
+Sistem koordinat: sumbu X kiri(−) ke kanan(+), sumbu Y ke atas (0 = lantai baris terdepan), sumbu Z layar di 0 dan penonton di Z positif. Kamera menghadap ke −Z.
+
+Perhitungan sudut dan skor visibilitas (`ViewingInfo`) ada di [`src/lib/studio/viewing.ts`](src/lib/studio/viewing.ts); pose kamera, easing, dan batas look-around ada di [`src/lib/studio/camera.ts`](src/lib/studio/camera.ts). Setiap fungsi perhitungan murni punya unit test.

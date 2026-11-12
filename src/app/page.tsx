@@ -1,14 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import HomeCatalog from "@/components/movie/HomeCatalog";
 import { movies } from "@/data/movies";
 import { featuredMovies } from "@/lib/movies";
+
+export const metadata: Metadata = {
+  title: "Cinema View — Lihat Kursimu Sebelum Memesan",
+  description:
+    "Pilih kursi bioskop dan lihat pemandangan dari kursimu sebelum memesan tiket di Cinema View.",
+};
 
 export default function HomePage() {
   const hero = featuredMovies(movies, 1)[0];
 
   return (
     <div className="flex flex-col gap-12">
-      <section className="overflow-hidden rounded-2xl border border-border bg-linear-to-br from-[#1e3a8a] via-[#141416] to-[#7f1d1d] p-6 sm:p-10">
+      <section className="overflow-hidden rounded-2xl border border-border bg-linear-to-br from-hero-from via-surface to-hero-to p-6 sm:p-10">
         <p className="text-xs uppercase tracking-widest text-muted">Sedang tayang</p>
         <h1 className="mt-2 text-3xl font-semibold sm:text-5xl">{hero.title}</h1>
         <p className="mt-3 max-w-2xl text-sm text-muted sm:text-base">{hero.synopsis}</p>
