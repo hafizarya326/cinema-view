@@ -60,6 +60,7 @@ export const LOOK_YAW_LIMIT = 70; // degrees each side of the default gaze
 export const LOOK_PITCH_MIN = -30; // degrees
 export const LOOK_PITCH_MAX = 30; // degrees
 export const LOOK_DRAG_SENSITIVITY = 0.25; // degrees per pixel dragged
+export const LOOK_KEY_STEP = 5; // degrees per arrow key press
 export const LOOK_RESET_SMOOTHING = 6; // per second, eases yaw/pitch back to 0
 export const CAMERA_TRANSITION_DURATION = 1.2; // seconds, easeInOutCubic
 

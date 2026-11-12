@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import type { Booking, Seat } from "@/types";
 
 export const BOOKINGS_STORAGE_KEY = "cinema-view-bookings";
@@ -57,4 +58,14 @@ export function getConflictingSeatIds(seats: Seat[], showtimeId: string): string
   return seats
     .filter((seat) => seat.status !== "available" || booked.has(seat.id))
     .map((seat) => seat.id);
+}
+
+const noopSubscribe = () => () => {};
+
+/**
+ * false during SSR and the first client render, true afterwards. Mirrors the
+ * server snapshot so hydration never sees localStorage-only data.
+ */
+export function useIsMounted(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
 }

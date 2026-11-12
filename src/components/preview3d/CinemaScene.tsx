@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";import type 
 import * as THREE from "three";
 import {
   LOOK_DRAG_SENSITIVITY,
+  LOOK_KEY_STEP,
   LOOK_RESET_SMOOTHING,
   CAMERA_FOV,
   CAMERA_TRANSITION_DURATION,
@@ -237,16 +238,33 @@ function CameraRig({
       }
     };
 
+    // Keyboard look-around: arrows nudge the gaze, clamped exactly like dragging.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (inputLocked()) return;
+
+      let { yaw, pitch } = lookTarget.current;
+      if (event.key === "ArrowLeft") yaw -= LOOK_KEY_STEP;
+      else if (event.key === "ArrowRight") yaw += LOOK_KEY_STEP;
+      else if (event.key === "ArrowUp") pitch += LOOK_KEY_STEP;
+      else if (event.key === "ArrowDown") pitch -= LOOK_KEY_STEP;
+      else return;
+
+      event.preventDefault();
+      lookTarget.current = clampLook(yaw, pitch);
+    };
+
     element.addEventListener("pointerdown", onPointerDown);
     element.addEventListener("pointermove", onPointerMove);
     element.addEventListener("pointerup", endDrag);
     element.addEventListener("pointercancel", endDrag);
+    element.addEventListener("keydown", onKeyDown);
 
     return () => {
       element.removeEventListener("pointerdown", onPointerDown);
       element.removeEventListener("pointermove", onPointerMove);
       element.removeEventListener("pointerup", endDrag);
       element.removeEventListener("pointercancel", endDrag);
+      element.removeEventListener("keydown", onKeyDown);
     };
   }, [mode, seat, wrapperRef]);
 
@@ -305,7 +323,14 @@ export default function CinemaScene({
 
   return (
     // touch-none keeps one-finger drags from scrolling the page; scroll outside stays normal.
-    <div ref={wrapperRef} className="size-full touch-none">
+    // Focusable so the arrow keys can turn the gaze in seat view.
+    <div
+      ref={wrapperRef}
+      role="region"
+      tabIndex={0}
+      aria-label="Pratinjau 3D studio. Klik dan geser untuk melihat sekeliling; saat mode Seat View, gunakan tombol panah untuk memutar pandangan dari kursi terpilih."
+      className="size-full touch-none rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
+    >
       <Canvas
         dpr={[1, 2]}
         gl={{ antialias: true }}

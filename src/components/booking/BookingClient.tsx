@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SelectedSeatsPanel from "@/components/booking/SelectedSeatsPanel";
 import SeatMap from "@/components/seatmap/SeatMap";
-import { applyBookedSeats } from "@/lib/bookings";
+import { applyBookedSeats, useIsMounted } from "@/lib/bookings";
 import { formatDateLabel, showtimesForDate } from "@/lib/showtimes";
 import { generateSeats } from "@/lib/studio/seats";
 import { useBookingStore } from "@/store/bookingStore";
@@ -32,6 +32,7 @@ export default function BookingClient({
   const clearSeats = useBookingStore((state) => state.clearSeats);
 
   const [pickedDate, setPickedDate] = useState<string | null>(null);
+  const mounted = useIsMounted();
 
   useEffect(() => {
     useBookingStore.persist.rehydrate();
@@ -45,11 +46,12 @@ export default function BookingClient({
   const showtime = storedShowtime?.movieId === movie.id ? storedShowtime : null;
   const dateKey = pickedDate ?? showtime?.date ?? dateKeys[0];
 
-  // Confirmed seats come back occupied; recomputed whenever the showtime changes.
-  const seats = useMemo(
-    () => (showtime ? applyBookedSeats(generateSeats(showtime.id), showtime.id) : []),
-    [showtime],
-  );
+  // Confirmed seats come back occupied; localStorage is only read after mount.
+  const seats = useMemo(() => {
+    if (!showtime) return [];
+    const base = generateSeats(showtime.id);
+    return mounted ? applyBookedSeats(base, showtime.id) : base;
+  }, [showtime, mounted]);
   const selectedSeats = useMemo(
     () => seats.filter((seat) => selectedSeatIds.includes(seat.id)),
     [seats, selectedSeatIds],
