@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import SchedulePicker from "@/components/booking/SchedulePicker";
+import BookingClient from "@/components/booking/BookingClient";
 import { movies } from "@/data/movies";
 import { getUpcomingShowtimes } from "@/data/showtimes";
 import { getMovieById } from "@/lib/movies";
@@ -29,7 +29,7 @@ export default async function BookingPage({ params }: PageProps<"/booking/[id]">
         <p className="text-sm text-muted">Pilih jadwal tayang, lalu lanjut ke pemilihan kursi.</p>
       </div>
 
-      <SchedulePicker
+      <BookingClient
         movie={movie}
         dateKeys={dateKeys}
         showtimes={showtimes}
