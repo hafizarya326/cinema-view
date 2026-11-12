@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import SeatChips from "@/components/booking/SeatChips";
+import ViewingInfoPanel from "@/components/booking/ViewingInfoPanel";
 import SeatMap from "@/components/seatmap/SeatMap";
 import type { CameraMode } from "@/lib/studio/camera";
 import { isWebGLAvailable } from "@/lib/studio/scene";
@@ -123,28 +124,35 @@ export default function BookingPreview() {
         )}
       </div>
 
-      {webglAvailable ? (
-        <div className="h-[60vh] min-h-90 overflow-hidden rounded-2xl border border-border bg-surface">
-          <CinemaScene
-            seats={seats}
-            selectedSeatIds={selectedSeatIds}
-            activeSeatId={activeSeatId}
-            mode={mode}
-          />
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        {/* Panel lives outside the touch-none canvas wrapper so scrolling it works on mobile. */}
+        <div>
+          {webglAvailable ? (
+            <div className="h-[60vh] min-h-90 overflow-hidden rounded-2xl border border-border bg-surface">
+              <CinemaScene
+                seats={seats}
+                selectedSeatIds={selectedSeatIds}
+                activeSeatId={activeSeatId}
+                mode={mode}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <p className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
+                WebGL tidak tersedia di perangkat ini, jadi kami menampilkan peta kursi 2D.
+              </p>
+              <SeatMap
+                seats={seats}
+                selectedSeatIds={selectedSeatIds}
+                activeSeatId={activeSeatId}
+                onToggleSeat={toggleSeat}
+              />
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <p className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
-            WebGL tidak tersedia di perangkat ini, jadi kami menampilkan peta kursi 2D.
-          </p>
-          <SeatMap
-            seats={seats}
-            selectedSeatIds={selectedSeatIds}
-            activeSeatId={activeSeatId}
-            onToggleSeat={toggleSeat}
-          />
-        </div>
-      )}
+
+        <ViewingInfoPanel seats={seats} backHref={`/booking/${showtime.movieId}`} />
+      </div>
     </div>
   );
 }

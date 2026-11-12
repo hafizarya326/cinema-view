@@ -1,4 +1,4 @@
-import type { SeatCategory, SeatStatus } from "@/types";
+import type { SeatCategory, SeatStatus, VisibilityLabel } from "@/types";
 
 // Screen
 export const SCREEN_WIDTH = 12.0;
@@ -77,4 +77,12 @@ export const SCENE_COLORS = {
   wall: "#141416",
   ceiling: "#101012",
   screen: "#E5E7EB",
+};
+
+// Visibility label colors (label tokens, not used by the 3D scene)
+export const VISIBILITY_COLORS: Record<VisibilityLabel, string> = {
+  Excellent: "#22C55E",
+  Good: "#A3E635",
+  Fair: "#EAB308",
+  Poor: "#E50914",
 };

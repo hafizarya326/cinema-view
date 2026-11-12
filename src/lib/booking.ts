@@ -35,3 +35,13 @@ export function getSeatAriaLabel(seat: Seat, isSelected = false): string {
 export function getSeatsSubtotal(seats: Seat[]): number {
   return seats.reduce((total, seat) => total + seat.price, 0);
 }
+
+/** 6.1 m */
+export function formatMeters(value: number): string {
+  return `${value.toFixed(1)} m`;
+}
+
+/** 35.5° */
+export function formatDegrees(value: number): string {
+  return `${value.toFixed(1)}°`;
+}
