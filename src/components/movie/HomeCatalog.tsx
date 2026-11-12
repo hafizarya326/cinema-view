@@ -29,7 +29,11 @@ export default function HomeCatalog({ movies }: { movies: Movie[] }) {
       <SearchInput value={query} onChange={setQuery} placeholder="Cari film di Cinema View..." />
 
       {query.trim() ? (
-        <Section title={`Hasil pencarian (${results.length})`} movies={results} />
+        results.length === 0 ? (
+          <p className="text-sm text-muted">Tidak ada film yang cocok dengan pencarianmu.</p>
+        ) : (
+          <Section title={`Hasil pencarian (${results.length})`} movies={results} />
+        )
       ) : (
         <>
           <Section title="Featured" movies={featuredMovies(movies, 3)} />

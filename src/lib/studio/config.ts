@@ -21,6 +21,8 @@ export const SEAT_COUNT = ROW_COUNT * SEATS_PER_ROW; // 140
 
 // Camera / interaction
 export const CAMERA_FOV = 60;
+export const CAMERA_NEAR = 0.1;
+export const CAMERA_FAR = 500;
 export const MAX_SEATS_PER_BOOKING = 6;
 
 // Seating
@@ -42,6 +44,9 @@ export const ROOM_WALL_THICKNESS = 0.2;
 export const SEAT_WIDTH = SEAT_PITCH * 0.8;
 export const SEAT_DEPTH = 0.5;
 export const SEAT_HEIGHT = 0.9;
+
+// Ceiling light hangs this far below the ceiling
+export const CEILING_LIGHT_INSET = 0.4;
 
 // Static overview camera (first-person comes later)
 export const OVERVIEW_CAMERA_POSITION: [number, number, number] = [
