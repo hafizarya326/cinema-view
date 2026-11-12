@@ -1,7 +1,8 @@
 "use client";
 
-import { getSeatAriaLabel, getSeatStatusLabel } from "@/lib/booking";
-import { ROW_LABELS, SEATS_PER_ROW } from "@/lib/studio/config";
+import { formatRupiah, getCategoryLabel, getSeatAriaLabel, getSeatStatusLabel } from "@/lib/booking";
+import { ROW_LABELS, SEATS_PER_ROW, VISIBILITY_COLORS } from "@/lib/studio/config";
+import { getViewingInfo } from "@/lib/studio/viewing";
 import type { Seat, SeatStatus } from "@/types";
 
 const SEAT_BG: Record<SeatStatus, string> = {
@@ -38,7 +39,7 @@ export default function SeatMap({
         <p className="text-center text-xs uppercase tracking-widest text-muted">Layar</p>
         <div className="mx-auto h-2 w-3/4 rounded-full bg-foreground/25" />
 
-        <div className="overflow-x-auto pb-2">
+        <div className="overflow-x-auto px-1 pt-14 pb-3">
           <div role="group" aria-label="Peta kursi" className="mx-auto w-fit">
             <div className="mb-2 flex items-center gap-1">
               <span className="w-4 shrink-0" />
@@ -59,6 +60,14 @@ export default function SeatMap({
                   const isSelected = selectedSeatIds.includes(seat.id);
                   const status: SeatStatus = isSelected ? "selected" : seat.status;
                   const blocked = status === "occupied" || status === "unavailable";
+                  const info = getViewingInfo(seat);
+                  // Keep the tooltip inside the scroll area at both ends of a row.
+                  const tooltipAlign =
+                    seat.number <= 3
+                      ? "left-0"
+                      : seat.number >= SEATS_PER_ROW - 2
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2";
 
                   return (
                     <button
@@ -70,13 +79,24 @@ export default function SeatMap({
                       onClick={() => {
                         if (!blocked) onToggleSeat(seat);
                       }}
-                      className={`size-6 shrink-0 rounded-md transition-transform sm:size-7 ${
+                      className={`group relative size-6 shrink-0 rounded-md transition-transform sm:size-7 ${
                         SEAT_BG[status]
                       } ${blocked ? "cursor-not-allowed opacity-80" : "hover:scale-110"} ${
                         seat.id === activeSeatId ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : ""
                       }`}
                       style={status === "unavailable" ? UNAVAILABLE_PATTERN : undefined}
-                    />
+                    >
+                      {/* CSS-only tooltip: shows on hover or keyboard focus, never blocks clicks. */}
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none absolute bottom-full z-10 mb-2 hidden w-max rounded-xl border border-border bg-background px-2 py-1 text-[10px] leading-tight text-foreground shadow-lg group-hover:block group-focus-visible:block ${tooltipAlign}`}
+                      >
+                        {getCategoryLabel(seat.category)} · {formatRupiah(seat.price)} ·{" "}
+                        <span style={{ color: VISIBILITY_COLORS[info.visibilityLabel] }}>
+                          {info.visibilityLabel}
+                        </span>
+                      </span>
+                    </button>
                   );
                 })}
               </div>

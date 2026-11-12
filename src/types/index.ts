@@ -2,6 +2,7 @@ export type MovieStatus = "now_showing" | "coming_soon";
 
 export type SeatStatus = "available" | "selected" | "occupied" | "unavailable";
 export type SeatCategory = "front" | "standard" | "premium";
+export type VisibilityLabel = "Excellent" | "Good" | "Fair" | "Poor";
 
 export interface Seat {
   id: string; // e.g. "F7"
@@ -22,7 +23,7 @@ export interface ViewingInfo {
   neckTilt: number;
   azimuth: number;
   visibilityScore: number;
-  visibilityLabel: "Excellent" | "Good" | "Fair" | "Poor";
+  visibilityLabel: VisibilityLabel;
 }
 
 

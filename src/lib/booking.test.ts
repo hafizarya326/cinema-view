@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatRupiah, getCategoryLabel, getSeatAriaLabel, getSeatsSubtotal } from "./booking";
+import {
+  formatDegrees,
+  formatMeters,
+  formatRupiah,
+  getCategoryLabel,
+  getSeatAriaLabel,
+  getSeatsSubtotal,
+} from "./booking";
 import { createSeat } from "./studio/seats";
 import type { SeatStatus } from "@/types";
 
@@ -42,5 +49,19 @@ describe("getSeatsSubtotal", () => {
   it("sums the seat prices", () => {
     expect(getSeatsSubtotal([f7, g7])).toBe(115000);
     expect(getSeatsSubtotal([])).toBe(0);
+  });
+});
+
+describe("formatMeters", () => {
+  it("keeps one decimal and appends the unit", () => {
+    expect(formatMeters(6.0748)).toBe("6.1 m");
+    expect(formatMeters(12)).toBe("12.0 m");
+  });
+});
+
+describe("formatDegrees", () => {
+  it("keeps one decimal and appends the degree sign", () => {
+    expect(formatDegrees(35.46)).toBe("35.5°");
+    expect(formatDegrees(0)).toBe("0.0°");
   });
 });
