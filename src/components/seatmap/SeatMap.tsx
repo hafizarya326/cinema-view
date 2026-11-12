@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { formatRupiah, getCategoryLabel, getSeatAriaLabel, getSeatStatusLabel } from "@/lib/booking";
 import { ROW_LABELS, SEATS_PER_ROW, VISIBILITY_COLORS } from "@/lib/studio/config";
 import { getViewingInfo } from "@/lib/studio/viewing";
@@ -18,6 +19,9 @@ const UNAVAILABLE_PATTERN = {
 
 const LEGEND: SeatStatus[] = ["available", "selected", "occupied", "unavailable"];
 
+/** Keys handled by the roving tabindex; Enter/Space keep the native button behaviour. */
+const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
+
 export default function SeatMap({
   seats,
   selectedSeatIds,
@@ -29,9 +33,32 @@ export default function SeatMap({
   activeSeatId: string | null;
   onToggleSeat: (seat: Seat) => void;
 }) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  // Exactly one seat is tabbable: the last one focused, or the first seat.
+  const tabbableId = focusId ?? seats[0]?.id ?? null;
+
   const rows = ROW_LABELS.map((row) =>
     seats.filter((seat) => seat.row === row).sort((a, b) => a.number - b.number),
   );
+
+  /** Arrow / Home / End move the roving focus; selection is untouched. */
+  const moveFocus = (seat: Seat, key: string) => {
+    const rowIndex = ROW_LABELS.indexOf(seat.row);
+    let nextRow = rowIndex;
+    let nextNumber = seat.number;
+
+    if (key === "ArrowRight") nextNumber = Math.min(SEATS_PER_ROW, seat.number + 1);
+    else if (key === "ArrowLeft") nextNumber = Math.max(1, seat.number - 1);
+    else if (key === "ArrowDown") nextRow = Math.min(ROW_LABELS.length - 1, rowIndex + 1);
+    else if (key === "ArrowUp") nextRow = Math.max(0, rowIndex - 1);
+    else if (key === "Home") nextNumber = 1;
+    else nextNumber = SEATS_PER_ROW; // End
+
+    const nextId = `${ROW_LABELS[nextRow]}${nextNumber}`;
+    setFocusId(nextId);
+    gridRef.current?.querySelector<HTMLButtonElement>(`[data-seat-id="${nextId}"]`)?.focus();
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,7 +67,7 @@ export default function SeatMap({
         <div className="mx-auto h-2 w-3/4 rounded-full bg-foreground/25" />
 
         <div className="overflow-x-auto px-1 pt-14 pb-3">
-          <div role="group" aria-label="Peta kursi" className="mx-auto w-fit">
+          <div ref={gridRef} role="group" aria-label="Peta kursi" className="mx-auto w-fit">
             <div className="mb-2 flex items-center gap-1">
               <span className="w-4 shrink-0" />
               {Array.from({ length: SEATS_PER_ROW }, (_, index) => (
@@ -73,13 +100,21 @@ export default function SeatMap({
                     <button
                       key={seat.id}
                       type="button"
+                      data-seat-id={seat.id}
+                      tabIndex={seat.id === tabbableId ? 0 : -1}
                       aria-label={getSeatAriaLabel(seat, isSelected)}
                       aria-pressed={isSelected}
                       aria-disabled={blocked}
                       onClick={() => {
                         if (!blocked) onToggleSeat(seat);
                       }}
-                      className={`group relative size-6 shrink-0 rounded-md transition-transform sm:size-7 ${
+                      onFocus={() => setFocusId(seat.id)}
+                      onKeyDown={(event) => {
+                        if (!NAV_KEYS.has(event.key)) return;
+                        event.preventDefault();
+                        moveFocus(seat, event.key);
+                      }}
+                      className={`group relative size-6 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface sm:size-7 ${
                         SEAT_BG[status]
                       } ${blocked ? "cursor-not-allowed opacity-80" : "hover:scale-110"} ${
                         seat.id === activeSeatId ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : ""

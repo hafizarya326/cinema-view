@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import SeatChips from "@/components/booking/SeatChips";
 import ViewingInfoPanel from "@/components/booking/ViewingInfoPanel";
 import SeatMap from "@/components/seatmap/SeatMap";
-import { applyBookedSeats } from "@/lib/bookings";
+import { applyBookedSeats, useIsMounted } from "@/lib/bookings";
 import type { CameraMode } from "@/lib/studio/camera";
 import { isWebGLAvailable } from "@/lib/studio/scene";
 import { generateSeats } from "@/lib/studio/seats";
@@ -57,16 +57,19 @@ export default function BookingPreview() {
   const setActiveSeat = useBookingStore((state) => state.setActiveSeat);
   const [webglAvailable] = useState(isWebGLAvailable);
   const [pickedMode, setPickedMode] = useState<CameraMode | null>(null);
+  const mounted = useIsMounted();
 
   useEffect(() => {
     void useBookingStore.persist.rehydrate();
   }, []);
 
-  // Confirmed seats come back occupied in both the 2D fallback and the 3D scene.
-  const seats = useMemo(
-    () => (showtime ? applyBookedSeats(generateSeats(showtime.id), showtime.id) : []),
-    [showtime],
-  );
+  // Confirmed seats come back occupied in both the 2D fallback and the 3D scene;
+  // localStorage is only read after mount so hydration stays identical.
+  const seats = useMemo(() => {
+    if (!showtime) return [];
+    const base = generateSeats(showtime.id);
+    return mounted ? applyBookedSeats(base, showtime.id) : base;
+  }, [showtime, mounted]);
   const selectedSeats = useMemo(
     () => seats.filter((seat) => selectedSeatIds.includes(seat.id)),
     [seats, selectedSeatIds],
