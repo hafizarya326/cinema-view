@@ -47,3 +47,19 @@ export interface Showtime {
   cinema: string;
   studio: string;
 }
+
+/** A confirmed mock booking, stored in localStorage. */
+export interface Booking {
+  code: string; // CV-XXXXXX
+  movieId: string;
+  movieTitle: string;
+  showtimeId: string;
+  cinema: string;
+  studio: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  seatIds: string[];
+  seatCount: number;
+  totalPrice: number;
+  createdAt: string; // ISO timestamp
+}

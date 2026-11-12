@@ -12,6 +12,7 @@ interface BookingState {
   setShowtime: (showtime: Showtime | null) => void;
   toggleSeat: (seat: Seat) => void;
   setActiveSeat: (seatId: string) => void;
+  removeSeats: (seatIds: string[]) => void;
   clearSeats: () => void;
 }
 
@@ -52,6 +53,17 @@ export const useBookingStore = create<BookingState>()(
         set((state) =>
           state.selectedSeatIds.includes(seatId) ? { activeSeatId: seatId } : {},
         ),
+
+      // Drops seats that turned out to be taken (checked at confirm time).
+      removeSeats: (seatIds) =>
+        set((state) => {
+          const selectedSeatIds = state.selectedSeatIds.filter((id) => !seatIds.includes(id));
+          const activeSeatId =
+            state.activeSeatId && seatIds.includes(state.activeSeatId)
+              ? (selectedSeatIds.at(-1) ?? null)
+              : state.activeSeatId;
+          return { selectedSeatIds, activeSeatId };
+        }),
 
       clearSeats: () => set({ selectedSeatIds: [], activeSeatId: null }),
     }),

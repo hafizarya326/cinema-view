@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import SeatChips from "@/components/booking/SeatChips";
 import ViewingInfoPanel from "@/components/booking/ViewingInfoPanel";
 import SeatMap from "@/components/seatmap/SeatMap";
+import { applyBookedSeats } from "@/lib/bookings";
 import type { CameraMode } from "@/lib/studio/camera";
 import { isWebGLAvailable } from "@/lib/studio/scene";
 import { generateSeats } from "@/lib/studio/seats";
@@ -61,7 +62,11 @@ export default function BookingPreview() {
     void useBookingStore.persist.rehydrate();
   }, []);
 
-  const seats = useMemo(() => (showtime ? generateSeats(showtime.id) : []), [showtime]);
+  // Confirmed seats come back occupied in both the 2D fallback and the 3D scene.
+  const seats = useMemo(
+    () => (showtime ? applyBookedSeats(generateSeats(showtime.id), showtime.id) : []),
+    [showtime],
+  );
   const selectedSeats = useMemo(
     () => seats.filter((seat) => selectedSeatIds.includes(seat.id)),
     [seats, selectedSeatIds],
@@ -123,6 +128,16 @@ export default function BookingPreview() {
           />
         )}
       </div>
+
+      <Link
+        href="/checkout"
+        aria-disabled={selectedSeatIds.length === 0}
+        className={`w-fit rounded-2xl bg-accent px-5 py-3 text-sm font-medium transition-opacity ${
+          selectedSeatIds.length === 0 ? "pointer-events-none opacity-40" : "hover:opacity-90"
+        }`}
+      >
+        Lanjut ke Checkout
+      </Link>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         {/* Panel lives outside the touch-none canvas wrapper so scrolling it works on mobile. */}
