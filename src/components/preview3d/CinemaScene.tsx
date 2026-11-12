@@ -8,9 +8,12 @@ import {
   LOOK_DRAG_SENSITIVITY,
   LOOK_KEY_STEP,
   LOOK_RESET_SMOOTHING,
+  CAMERA_FAR,
   CAMERA_FOV,
+  CAMERA_NEAR,
   CAMERA_TRANSITION_DURATION,
   CEILING_HEIGHT,
+  CEILING_LIGHT_INSET,
   ORBIT_MAX_DISTANCE,
   ORBIT_MAX_POLAR_ANGLE,
   ORBIT_MIN_DISTANCE,
@@ -116,7 +119,7 @@ function Lights() {
       <ambientLight intensity={0.3} />
       <hemisphereLight args={[SCENE_COLORS.ceiling, SCENE_COLORS.background, 0.35]} />
       <pointLight
-        position={[0, CEILING_HEIGHT - 0.4, getSeatZ(Math.floor(ROW_COUNT / 2))]}
+        position={[0, CEILING_HEIGHT - CEILING_LIGHT_INSET, getSeatZ(Math.floor(ROW_COUNT / 2))]}
         intensity={25}
         distance={ROOM_DEPTH * 2}
         decay={2}
@@ -128,13 +131,13 @@ function Lights() {
 /** All 140 seats in a single InstancedMesh, tinted per status. */
 function Seats({ seats, selectedSeatIds }: { seats: Seat[]; selectedSeatIds: string[] }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
+  // Scratch objects, allocated once instead of on every seat update.
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
+  const color = useMemo(() => new THREE.Color(), []);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
-
-    const matrix = new THREE.Matrix4();
-    const color = new THREE.Color();
 
     seats.forEach((seat, index) => {
       matrix.setPosition(...getSeatPosition(seat));
@@ -144,7 +147,7 @@ function Seats({ seats, selectedSeatIds }: { seats: Seat[]; selectedSeatIds: str
 
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [seats, selectedSeatIds]);
+  }, [seats, selectedSeatIds, matrix, color]);
 
   // Release the instanced buffers we own when the scene unmounts.
   useEffect(() => {
@@ -161,6 +164,25 @@ function Seats({ seats, selectedSeatIds }: { seats: Seat[]; selectedSeatIds: str
 }
 
 type ControlsRef = ComponentRef<typeof OrbitControls>;
+
+/** Reports a lost WebGL context so the page can fall back to the 2D seat map. */
+function ContextWatcher({ onContextLost }: { onContextLost?: () => void }) {
+  const gl = useThree((state) => state.gl);
+
+  useEffect(() => {
+    if (!onContextLost) return;
+    const canvas = gl.domElement;
+    const handleLost = (event: Event) => {
+      event.preventDefault();
+      onContextLost();
+    };
+
+    canvas.addEventListener("webglcontextlost", handleLost);
+    return () => canvas.removeEventListener("webglcontextlost", handleLost);
+  }, [gl, onContextLost]);
+
+  return null;
+}
 
 /**
  * Moves the camera between overview and the active seat (1.2s easeInOutCubic).
@@ -187,11 +209,14 @@ function CameraRig({
   const look = useRef<LookAngles>({ yaw: 0, pitch: 0 });
   const lookTarget = useRef<LookAngles>({ yaw: 0, pitch: 0 });
   const drag = useRef({ active: false, x: 0, y: 0 });
+  // Resolved once per mode/seat change; the frame loop never allocates vectors.
+  const view = useMemo(() => getModeView(mode, seat), [mode, seat]);
+  const eye = useMemo(() => getModeView("seat", seat).position, [seat]);
+  const gazeTarget = useMemo(() => new THREE.Vector3(), []);
 
   // New seat or mode: transition from the current pose and ease the gaze back to the default.
   useEffect(() => {
     const controls = controlsRef.current;
-    const view = getModeView(mode, seat);
 
     transition.current = {
       progress: 0,
@@ -202,7 +227,7 @@ function CameraRig({
     };
     lookTarget.current = { yaw: 0, pitch: 0 };
     if (controls) controls.enabled = false;
-  }, [camera, controlsRef, mode, seat]);
+  }, [camera, controlsRef, view]);
 
   useEffect(() => {
     const element = wrapperRef.current;
@@ -279,7 +304,6 @@ function CameraRig({
     if (state.progress < 1 && state.from && state.fromTarget) {
       state.progress = Math.min(1, state.progress + delta / CAMERA_TRANSITION_DURATION);
       const eased = easeInOutCubic(state.progress);
-      const view = getModeView(mode, seat);
 
       camera.position.set(...interpolatePosition(state.from, view.position, eased));
 
@@ -294,10 +318,14 @@ function CameraRig({
 
     if (mode !== "seat" || !seat) return; // overview is driven by OrbitControls
 
-    const eye = getModeView("seat", seat).position;
     camera.position.set(...eye); // pinned to the eye: dragging never moves it
     const direction = getLookDirection(eye, look.current.yaw, look.current.pitch);
-    camera.lookAt(eye[0] + direction[0], eye[1] + direction[1], eye[2] + direction[2]);
+    gazeTarget.set(
+      eye[0] + direction[0],
+      eye[1] + direction[1],
+      eye[2] + direction[2],
+    );
+    camera.lookAt(gazeTarget);
   });
 
   return null;
@@ -308,11 +336,13 @@ export default function CinemaScene({
   selectedSeatIds,
   activeSeatId,
   mode,
+  onContextLost,
 }: {
   seats: Seat[];
   selectedSeatIds: string[];
   activeSeatId: string | null;
   mode: CameraMode;
+  onContextLost?: () => void;
 }) {
   const controlsRef = useRef<ControlsRef>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -334,9 +364,15 @@ export default function CinemaScene({
       <Canvas
         dpr={[1, 2]}
         gl={{ antialias: true }}
-        camera={{ position: OVERVIEW_CAMERA_POSITION, fov: CAMERA_FOV, near: 0.1, far: 500 }}
+        camera={{
+          position: OVERVIEW_CAMERA_POSITION,
+          fov: CAMERA_FOV,
+          near: CAMERA_NEAR,
+          far: CAMERA_FAR,
+        }}
       >
         <color attach="background" args={[SCENE_COLORS.background]} />
+        <ContextWatcher onContextLost={onContextLost} />
         <Lights />
         <RoomShell />
         <SteppedFloor />

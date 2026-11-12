@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import SeatChips from "@/components/booking/SeatChips";
 import ViewingInfoPanel from "@/components/booking/ViewingInfoPanel";
+import SceneErrorBoundary from "@/components/preview3d/SceneErrorBoundary";
 import SeatMap from "@/components/seatmap/SeatMap";
 import { applyBookedSeats, useIsMounted } from "@/lib/bookings";
 import type { CameraMode } from "@/lib/studio/camera";
@@ -57,6 +58,7 @@ export default function BookingPreview() {
   const setActiveSeat = useBookingStore((state) => state.setActiveSeat);
   const [webglAvailable] = useState(isWebGLAvailable);
   const [pickedMode, setPickedMode] = useState<CameraMode | null>(null);
+  const [sceneFailed, setSceneFailed] = useState(false);
   const mounted = useIsMounted();
 
   useEffect(() => {
@@ -80,6 +82,24 @@ export default function BookingPreview() {
   // Wait for sessionStorage before rendering seats, so nothing flashes empty.
   if (!hydrated) return <Loading label="Memuat data kursi..." />;
   if (!showtime) return <MissingSchedule />;
+
+  // Shown when WebGL is missing, when the scene crashes, or when the context is lost.
+  const fallbackMessage = webglAvailable
+    ? "Tampilan 3D berhenti berjalan, jadi kami menampilkan peta kursi 2D."
+    : "WebGL tidak tersedia di perangkat ini, jadi kami menampilkan peta kursi 2D.";
+  const seatMapFallback = (
+    <div className="flex flex-col gap-4">
+      <p className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
+        {fallbackMessage}
+      </p>
+      <SeatMap
+        seats={seats}
+        selectedSeatIds={selectedSeatIds}
+        activeSeatId={activeSeatId}
+        onToggleSeat={toggleSeat}
+      />
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -145,27 +165,20 @@ export default function BookingPreview() {
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         {/* Panel lives outside the touch-none canvas wrapper so scrolling it works on mobile. */}
         <div>
-          {webglAvailable ? (
-            <div className="h-[60vh] min-h-90 overflow-hidden rounded-2xl border border-border bg-surface">
-              <CinemaScene
-                seats={seats}
-                selectedSeatIds={selectedSeatIds}
-                activeSeatId={activeSeatId}
-                mode={mode}
-              />
-            </div>
+          {!webglAvailable || sceneFailed ? (
+            seatMapFallback
           ) : (
-            <div className="flex flex-col gap-4">
-              <p className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
-                WebGL tidak tersedia di perangkat ini, jadi kami menampilkan peta kursi 2D.
-              </p>
-              <SeatMap
-                seats={seats}
-                selectedSeatIds={selectedSeatIds}
-                activeSeatId={activeSeatId}
-                onToggleSeat={toggleSeat}
-              />
-            </div>
+            <SceneErrorBoundary fallback={seatMapFallback}>
+              <div className="h-[60vh] min-h-90 overflow-hidden rounded-2xl border border-border bg-surface">
+                <CinemaScene
+                  seats={seats}
+                  selectedSeatIds={selectedSeatIds}
+                  activeSeatId={activeSeatId}
+                  mode={mode}
+                  onContextLost={() => setSceneFailed(true)}
+                />
+              </div>
+            </SceneErrorBoundary>
           )}
         </div>
 

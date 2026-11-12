@@ -97,22 +97,28 @@ export default function BookingClient({
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-muted">Jam tayang</h2>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {times.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setShowtime(item)}
-              className={`rounded-2xl border px-4 py-2 text-sm transition-colors ${
-                item.id === showtime?.id
-                  ? "border-accent bg-accent text-foreground"
-                  : "border-border bg-surface text-muted hover:text-foreground"
-              }`}
-            >
-              {item.time}
-            </button>
-          ))}
-        </div>
+        {times.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-border bg-surface px-4 py-6 text-sm text-muted">
+            Belum ada jadwal tayang untuk tanggal ini. Pilih tanggal lain.
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {times.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setShowtime(item)}
+                className={`rounded-2xl border px-4 py-2 text-sm transition-colors ${
+                  item.id === showtime?.id
+                    ? "border-accent bg-accent text-foreground"
+                    : "border-border bg-surface text-muted hover:text-foreground"
+                }`}
+              >
+                {item.time}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
