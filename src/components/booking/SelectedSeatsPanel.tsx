@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SeatChips from "@/components/booking/SeatChips";
 import { formatRupiah, getSeatsSubtotal } from "@/lib/booking";
 import { MAX_SEATS_PER_BOOKING } from "@/lib/studio/config";
 import type { Seat } from "@/types";
@@ -31,24 +32,7 @@ export default function SelectedSeatsPanel({
         <p className="text-sm text-muted">Belum ada kursi dipilih. Maksimal 6 kursi per pesanan.</p>
       ) : (
         <>
-          <ul className="flex flex-wrap gap-2">
-            {seats.map((seat) => (
-              <li key={seat.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelectSeat(seat.id)}
-                  aria-pressed={seat.id === activeSeatId}
-                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                    seat.id === activeSeatId
-                      ? "border-accent bg-accent text-foreground"
-                      : "border-border text-muted hover:text-foreground"
-                  }`}
-                >
-                  {seat.id} · {formatRupiah(seat.price)}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <SeatChips seats={seats} activeSeatId={activeSeatId} onSelect={onSelectSeat} />
 
           <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
             <span className="text-muted">Subtotal</span>
