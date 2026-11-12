@@ -1,10 +1,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { movies } from "@/data/movies";
 import { getMovieById } from "@/lib/movies";
 
 export const instant = false;
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/movies/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const movie = getMovieById(movies, id);
+
+  if (!movie) return { title: "Film tidak ditemukan — Cinema View" };
+
+  return {
+    title: `${movie.title} — Cinema View`,
+    description: movie.synopsis,
+  };
+}
 
 export default async function MovieDetailPage({ params }: PageProps<"/movies/[id]">) {
   const { id } = await params;
@@ -14,7 +29,10 @@ export default async function MovieDetailPage({ params }: PageProps<"/movies/[id
 
   return (
     <div className="flex flex-col gap-8">
-      <Link href="/movies" className="text-sm text-muted transition-colors hover:text-foreground">
+      <Link
+        href="/movies"
+        className="inline-flex min-h-10 items-center text-sm text-muted transition-colors hover:text-foreground"
+      >
         ← Kembali ke daftar film
       </Link>
 

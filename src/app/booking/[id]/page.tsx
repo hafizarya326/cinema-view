@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import type { Metadata } from "next";
 import BookingClient from "@/components/booking/BookingClient";
 import { movies } from "@/data/movies";
 import { getUpcomingShowtimes } from "@/data/showtimes";
@@ -7,6 +8,20 @@ import { getMovieById } from "@/lib/movies";
 import { CINEMA_NAME, STUDIO_NAME } from "@/lib/showtimes";
 
 export const instant = false;
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/booking/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const movie = getMovieById(movies, id);
+
+  if (!movie) return { title: "Film tidak ditemukan — Cinema View" };
+
+  return {
+    title: `Pilih Kursi ${movie.title} — Cinema View`,
+    description: `Pilih jadwal tayang dan kursi untuk ${movie.title} di ${CINEMA_NAME}.`,
+  };
+}
 
 export default async function BookingPage({ params }: PageProps<"/booking/[id]">) {
   // Schedule is relative to today, so this route renders per request.

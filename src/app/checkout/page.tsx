@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import CheckoutClient from "@/components/booking/CheckoutClient";
+
+export const metadata: Metadata = {
+  title: "Checkout — Cinema View",
+  description: "Periksa ringkasan pesanan dan konfirmasi kursi pilihanmu.",
+};
 
 export default function CheckoutPage() {
   return (

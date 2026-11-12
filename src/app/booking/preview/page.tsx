@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import BookingPreview from "@/components/preview3d/BookingPreview";
+
+export const metadata: Metadata = {
+  title: "Preview Kursi 3D — Cinema View",
+  description: "Lihat studio dari kursi terpilih sebelum menyelesaikan pesanan.",
+};
 
 export default function PreviewPage() {
   return (

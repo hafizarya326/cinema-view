@@ -14,7 +14,8 @@ const SEAT_BG: Record<SeatStatus, string> = {
 };
 
 const UNAVAILABLE_PATTERN = {
-  backgroundImage: "repeating-linear-gradient(45deg, #3f3f46 0 2px, transparent 2px 5px)",
+  backgroundImage:
+    "repeating-linear-gradient(45deg, var(--color-seat-available) 0 2px, transparent 2px 5px)",
 };
 
 const LEGEND: SeatStatus[] = ["available", "selected", "occupied", "unavailable"];
@@ -73,7 +74,7 @@ export default function SeatMap({
               {Array.from({ length: SEATS_PER_ROW }, (_, index) => (
                 <span
                   key={index}
-                  className="grid size-6 shrink-0 place-items-center text-[10px] text-muted sm:size-7"
+                  className="grid size-10 shrink-0 place-items-center text-[10px] text-muted sm:size-7"
                 >
                   {index + 1}
                 </span>
@@ -114,7 +115,7 @@ export default function SeatMap({
                         event.preventDefault();
                         moveFocus(seat, event.key);
                       }}
-                      className={`group relative size-6 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface sm:size-7 ${
+                      className={`group relative size-10 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface sm:size-7 ${
                         SEAT_BG[status]
                       } ${blocked ? "cursor-not-allowed opacity-80" : "hover:scale-110"} ${
                         seat.id === activeSeatId ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : ""

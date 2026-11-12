@@ -16,5 +16,9 @@
   --color-seat-occupied: #7f1d1d;
   --color-seat-unavailable: #27272a;
 
+  /* Hero gradient stops */
+  --color-hero-from: #1e3a8a;
+  --color-hero-to: #7f1d1d;
+
   --radius-card: 1rem;
 }

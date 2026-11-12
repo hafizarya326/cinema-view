@@ -19,7 +19,10 @@ export default function Navbar() {
         <ul className="flex items-center gap-4 text-sm text-muted sm:gap-6">
           {links.map((link) => (
             <li key={link.href}>
-              <Link href={link.href} className="transition-colors hover:text-foreground">
+              <Link
+                href={link.href}
+                className="inline-flex min-h-10 items-center transition-colors hover:text-foreground"
+              >
                 {link.label}
               </Link>
             </li>
@@ -29,7 +32,7 @@ export default function Navbar() {
         <button
           type="button"
           aria-label="Cari film"
-          className="ml-auto grid size-9 place-items-center rounded-full border border-border text-muted transition-colors hover:text-foreground"
+          className="ml-auto grid size-10 place-items-center rounded-full border border-border text-muted transition-colors hover:text-foreground"
         >
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="7" />

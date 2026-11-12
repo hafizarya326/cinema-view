@@ -7,7 +7,10 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Cinema View",
+  title: {
+    default: "Cinema View",
+    template: "%s",
+  },
   description: "Pilih kursi bioskop dan lihat pemandangan dari kursimu sebelum memesan.",
 };
 

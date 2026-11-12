@@ -14,7 +14,7 @@ export default function MovieCatalog({ movies }: { movies: Movie[] }) {
   const results = filterByGenre(searchMovies(movies, query), genre);
 
   const chipClass = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-xs transition-colors ${
+    `inline-flex min-h-10 items-center rounded-full border px-4 text-xs transition-colors ${
       active
         ? "border-accent bg-accent text-foreground"
         : "border-border bg-surface text-muted hover:text-foreground"

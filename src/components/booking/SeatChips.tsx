@@ -20,7 +20,7 @@ export default function SeatChips({
             type="button"
             onClick={() => onSelect(seat.id)}
             aria-pressed={seat.id === activeSeatId}
-            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+            className={`inline-flex min-h-10 items-center rounded-full border px-3 text-xs transition-colors ${
               seat.id === activeSeatId
                 ? "border-accent bg-accent text-foreground"
                 : "border-border text-muted hover:text-foreground"

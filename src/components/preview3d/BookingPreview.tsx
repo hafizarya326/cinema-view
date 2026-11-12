@@ -115,7 +115,10 @@ export default function BookingPreview() {
       {selectedSeats.length === 0 && (
         <p className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
           Belum ada kursi dipilih.{" "}
-          <Link href={`/booking/${showtime.movieId}`} className="text-foreground underline">
+          <Link
+            href={`/booking/${showtime.movieId}`}
+            className="inline-flex min-h-10 items-center text-foreground underline"
+          >
             Kembali ke peta kursi
           </Link>{" "}
           untuk memilih kursi dulu.
