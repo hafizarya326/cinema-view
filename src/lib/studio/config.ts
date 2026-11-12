@@ -1,4 +1,4 @@
-import type { SeatCategory } from "@/types";
+import type { SeatCategory, SeatStatus } from "@/types";
 
 // Screen
 export const SCREEN_WIDTH = 12.0;
@@ -30,4 +30,43 @@ export const CATEGORY_PRICES: Record<SeatCategory, number> = {
   front: 40000,
   standard: 50000,
   premium: 65000,
+};
+
+// Room shell, derived so it always wraps the seat block
+export const ROOM_WIDTH = 16.0;
+export const ROOM_DEPTH = FIRST_ROW_Z + (ROW_COUNT - 1) * ROW_SPACING + 3.0;
+export const CEILING_HEIGHT = (ROW_COUNT - 1) * RAKE + 3.5;
+export const ROOM_WALL_THICKNESS = 0.2;
+
+// Seat block used by the 3D scene
+export const SEAT_WIDTH = SEAT_PITCH * 0.8;
+export const SEAT_DEPTH = 0.5;
+export const SEAT_HEIGHT = 0.9;
+
+// Static overview camera (first-person comes later)
+export const OVERVIEW_CAMERA_POSITION: [number, number, number] = [
+  0,
+  (ROW_COUNT - 1) * RAKE + 6.0,
+  FIRST_ROW_Z + (ROW_COUNT - 1) * ROW_SPACING + 8.0,
+];
+export const OVERVIEW_CAMERA_TARGET: [number, number, number] = [0, SCREEN_CENTER_Y, 0];
+export const ORBIT_MIN_DISTANCE = 6.0;
+export const ORBIT_MAX_DISTANCE = ROOM_DEPTH + 14.0;
+export const ORBIT_MIN_POLAR_ANGLE = 0.2;
+export const ORBIT_MAX_POLAR_ANGLE = Math.PI / 2.15;
+
+// Colors for the 3D scene (design tokens)
+export const SEAT_COLORS: Record<SeatStatus, string> = {
+  available: "#3F3F46",
+  selected: "#22C55E",
+  occupied: "#7F1D1D",
+  unavailable: "#27272A",
+};
+
+export const SCENE_COLORS = {
+  background: "#0A0A0B",
+  floor: "#1B1B1F",
+  wall: "#141416",
+  ceiling: "#101012",
+  screen: "#E5E7EB",
 };

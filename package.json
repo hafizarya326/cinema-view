@@ -11,9 +11,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "three": "^0.187.0",
     "zustand": "^5.1.0"
   },
   "devDependencies": {
@@ -24,6 +27,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^6.3.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
