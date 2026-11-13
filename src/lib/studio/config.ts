@@ -37,7 +37,13 @@ export const CATEGORY_PRICES: Record<SeatCategory, number> = {
 // Room shell, derived so it always wraps the seat block
 export const ROOM_WIDTH = 16.0;
 export const ROOM_DEPTH = FIRST_ROW_Z + (ROW_COUNT - 1) * ROW_SPACING + 3.0;
-export const CEILING_HEIGHT = (ROW_COUNT - 1) * RAKE + 3.5;
+// The ceiling must clear the screen top, otherwise the top corners are cut off.
+export const CEILING_CLEARANCE_ABOVE_SCREEN = 0.5;
+export const CEILING_HEIGHT = Math.max(
+  (ROW_COUNT - 1) * RAKE + 3.5,
+  SCREEN_TOP_Y + CEILING_CLEARANCE_ABOVE_SCREEN,
+);
+export const CEILING_THICKNESS = 0.2;
 export const ROOM_WALL_THICKNESS = 0.2;
 
 // Seat block used by the 3D scene

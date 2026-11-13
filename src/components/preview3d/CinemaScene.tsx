@@ -20,13 +20,9 @@ import {
   ORBIT_MIN_POLAR_ANGLE,
   OVERVIEW_CAMERA_POSITION,
   OVERVIEW_CAMERA_TARGET,
-  RAKE,
   ROOM_DEPTH,
-  ROOM_WALL_THICKNESS,
-  ROOM_WIDTH,
   ROW_COUNT,
   ROW_LABELS,
-  ROW_SPACING,
   SCENE_COLORS,
   SCREEN_CENTER_Y,
   SCREEN_CENTER_Z,
@@ -47,52 +43,45 @@ import {
   getModeView,
   interpolatePosition,
 } from "@/lib/studio/camera";
-import { disposeMesh, getSeatColor, getSeatPosition } from "@/lib/studio/scene";
+import {
+  disposeMesh,
+  getCeilingBox,
+  getFloorSlabBoxes,
+  getSeatColor,
+  getSeatPosition,
+  getWallBoxes,
+} from "@/lib/studio/scene";
 import { getSeatZ } from "@/lib/studio/seats";
 import type { Seat } from "@/types";
-
-const INNER_WIDTH = ROOM_WIDTH - ROOM_WALL_THICKNESS * 2;
 
 /** One slab per row: top surface at rowIndex * RAKE, so the front row stays at floor level. */
 function SteppedFloor() {
   return (
     <group>
-      {ROW_LABELS.map((row, rowIndex) => {
-        const top = rowIndex * RAKE;
-        const zFrom = rowIndex === 0 ? 0 : getSeatZ(rowIndex) - ROW_SPACING / 2;
-        const zTo = rowIndex === ROW_COUNT - 1 ? ROOM_DEPTH : getSeatZ(rowIndex) + ROW_SPACING / 2;
-
-        return (
-          <mesh key={row} position={[0, top - RAKE / 2, (zFrom + zTo) / 2]}>
-            <boxGeometry args={[INNER_WIDTH, RAKE, zTo - zFrom]} />
-            <meshStandardMaterial color={SCENE_COLORS.floor} roughness={1} />
-          </mesh>
-        );
-      })}
+      {getFloorSlabBoxes().map((box, rowIndex) => (
+        <mesh key={ROW_LABELS[rowIndex]} position={box.center}>
+          <boxGeometry args={box.size} />
+          <meshStandardMaterial color={SCENE_COLORS.floor} roughness={1} />
+        </mesh>
+      ))}
     </group>
   );
 }
 
 function RoomShell() {
   const wallMaterial = <meshStandardMaterial color={SCENE_COLORS.wall} roughness={1} />;
+  const ceiling = getCeilingBox();
 
   return (
     <group>
-      <mesh position={[-ROOM_WIDTH / 2 + ROOM_WALL_THICKNESS / 2, CEILING_HEIGHT / 2, ROOM_DEPTH / 2]}>
-        <boxGeometry args={[ROOM_WALL_THICKNESS, CEILING_HEIGHT, ROOM_DEPTH]} />
-        {wallMaterial}
-      </mesh>
-      <mesh position={[ROOM_WIDTH / 2 - ROOM_WALL_THICKNESS / 2, CEILING_HEIGHT / 2, ROOM_DEPTH / 2]}>
-        <boxGeometry args={[ROOM_WALL_THICKNESS, CEILING_HEIGHT, ROOM_DEPTH]} />
-        {wallMaterial}
-      </mesh>
-      <mesh position={[0, CEILING_HEIGHT / 2, ROOM_DEPTH - ROOM_WALL_THICKNESS / 2]}>
-        <boxGeometry args={[ROOM_WIDTH, CEILING_HEIGHT, ROOM_WALL_THICKNESS]} />
-        {wallMaterial}
-      </mesh>
-      {/* Ceiling plane rotated so its front face points down into the room. */}
-      <mesh position={[0, CEILING_HEIGHT, ROOM_DEPTH / 2]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
+      {getWallBoxes().map((box, index) => (
+        <mesh key={index} position={box.center}>
+          <boxGeometry args={box.size} />
+          {wallMaterial}
+        </mesh>
+      ))}
+      <mesh position={ceiling.center}>
+        <boxGeometry args={ceiling.size} />
         <meshStandardMaterial color={SCENE_COLORS.ceiling} roughness={1} />
       </mesh>
     </group>
