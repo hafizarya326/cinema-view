@@ -4,6 +4,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";import type { ComponentRef, RefObject } from "react";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
   LOOK_DRAG_SENSITIVITY,
   LOOK_KEY_STEP,
@@ -33,9 +34,6 @@ import {
   SCREEN_PATTERN,
   SCREEN_WIDTH,
   SEAT_COUNT,
-  SEAT_DEPTH,
-  SEAT_HEIGHT,
-  SEAT_WIDTH,
 } from "@/lib/studio/config";
 import {
   type CameraMode,
@@ -53,6 +51,7 @@ import {
   getFloorSlabBoxes,
   getScreenFrameBoxes,
   getSeatColor,
+  getSeatPartBoxes,
   getSeatPosition,
   getStepLightBoxes,
   getWallBoxes,
@@ -216,12 +215,26 @@ function Lights() {
   );
 }
 
+/** Merge cushion, backrest, and both armrests into one geometry (single draw call). */
+function createChairGeometry(): THREE.BufferGeometry {
+  const parts = getSeatPartBoxes().map((box) => {
+    const geometry = new THREE.BoxGeometry(...box.size);
+    geometry.translate(...box.center);
+    return geometry;
+  });
+
+  const merged = mergeGeometries(parts);
+  parts.forEach((geometry) => geometry.dispose());
+  return merged;
+}
+
 /** All 140 seats in a single InstancedMesh, tinted per status. */
 function Seats({ seats, selectedSeatIds }: { seats: Seat[]; selectedSeatIds: string[] }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   // Scratch objects, allocated once instead of on every seat update.
   const matrix = useMemo(() => new THREE.Matrix4(), []);
   const color = useMemo(() => new THREE.Color(), []);
+  const geometry = useMemo(() => createChairGeometry(), []);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
@@ -244,8 +257,7 @@ function Seats({ seats, selectedSeatIds }: { seats: Seat[]; selectedSeatIds: str
   }, []);
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, SEAT_COUNT]}>
-      <boxGeometry args={[SEAT_WIDTH, SEAT_HEIGHT, SEAT_DEPTH]} />
+    <instancedMesh ref={meshRef} args={[geometry, undefined, SEAT_COUNT]}>
       <meshStandardMaterial color="#FFFFFF" roughness={0.7} />
     </instancedMesh>
   );

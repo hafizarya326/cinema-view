@@ -17,6 +17,7 @@ import {
   getCeilingBox,
   getFloorSlabBoxes,
   getScreenFrameBoxes,
+  getSeatBoxes,
   getStepLightBoxes,
   getWallBoxes,
   type RoomBox,
@@ -150,6 +151,45 @@ describe("studio sightline (unobstructed view to the screen)", () => {
         }
       }
     }
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("studio sightline (chairs never block the screen)", () => {
+  // Every chair part of every seat, precomputed once (140 * 4 boxes).
+  const chairBoxes = seats.flatMap((seat) =>
+    getSeatBoxes(seat).map((box, partIndex) => ({ label: `${seat.id}#${partIndex}`, box })),
+  );
+
+  it("clears every other chair and the seat's own backrest", () => {
+    const offenders: string[] = [];
+
+    for (const seat of seats) {
+      const eye: Vec3 = [seat.x, seat.y, seat.z];
+
+      for (const { name, point } of SCREEN_POINTS) {
+        for (const chair of chairBoxes) {
+          if (segmentHitsBox(eye, point, chair.box)) {
+            offenders.push(`${seat.id} -> ${name} hits ${chair.label}`);
+          }
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps every eye above and in front of its own backrest", () => {
+    const offenders = seats
+      .filter((seat) => {
+        const backrest = getSeatBoxes(seat)[1];
+        const backrestTop = backrest.center[1] + backrest.size[1] / 2;
+        const backrestFrontZ = backrest.center[2] - backrest.size[2] / 2;
+        // Eye above the backrest top, and the backrest sits behind the eye (+Z).
+        return !(seat.y > backrestTop && seat.z < backrestFrontZ);
+      })
+      .map((seat) => seat.id);
 
     expect(offenders).toEqual([]);
   });
