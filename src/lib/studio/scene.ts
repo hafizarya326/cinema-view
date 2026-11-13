@@ -9,8 +9,19 @@ import {
   ROW_COUNT,
   ROW_LABELS,
   ROW_SPACING,
+  SCREEN_BOTTOM_Y,
+  SCREEN_CENTER_Y,
+  SCREEN_CENTER_Z,
+  SCREEN_FRAME_DEPTH,
+  SCREEN_FRAME_THICKNESS,
+  SCREEN_HEIGHT,
+  SCREEN_TOP_Y,
+  SCREEN_WIDTH,
   SEAT_COLORS,
   SEAT_HEIGHT,
+  STEP_LIGHT_DEPTH,
+  STEP_LIGHT_HEIGHT,
+  STEP_LIGHT_INSET,
 } from "./config";
 import { getSeatZ } from "./seats";
 import type { Mesh } from "three";
@@ -66,6 +77,44 @@ export function getFloorSlabBoxes(): RoomBox[] {
     return {
       center: [0, top - RAKE / 2, (zFrom + zTo) / 2],
       size: [innerWidth, RAKE, zTo - zFrom],
+    };
+  });
+}
+
+/**
+ * Thin black frame around the screen. Inner edges sit exactly on the screen
+ * bounds and the depth goes behind the screen plane, so it never covers the
+ * visible area from any seat.
+ */
+export function getScreenFrameBoxes(): RoomBox[] {
+  const t = SCREEN_FRAME_THICKNESS;
+  const d = SCREEN_FRAME_DEPTH;
+  const z = SCREEN_CENTER_Z - d / 2;
+  const outerWidth = SCREEN_WIDTH + 2 * t;
+  const outerHeight = SCREEN_HEIGHT + 2 * t;
+
+  return [
+    { center: [-SCREEN_WIDTH / 2 - t / 2, SCREEN_CENTER_Y, z], size: [t, outerHeight, d] },
+    { center: [SCREEN_WIDTH / 2 + t / 2, SCREEN_CENTER_Y, z], size: [t, outerHeight, d] },
+    { center: [0, SCREEN_TOP_Y + t / 2, z], size: [outerWidth, t, d] },
+    { center: [0, SCREEN_BOTTOM_Y - t / 2, z], size: [outerWidth, t, d] },
+  ];
+}
+
+/** One dim strip light per step edge, laid on the tread just behind the nose. */
+export function getStepLightBoxes(): RoomBox[] {
+  const innerWidth = ROOM_WIDTH - ROOM_WALL_THICKNESS * 2;
+
+  return ROW_LABELS.map((_, rowIndex) => {
+    const zFrom = rowIndex === 0 ? 0 : getSeatZ(rowIndex) - ROW_SPACING / 2;
+
+    return {
+      center: [
+        0,
+        rowIndex * RAKE + STEP_LIGHT_HEIGHT / 2,
+        zFrom + STEP_LIGHT_INSET + STEP_LIGHT_DEPTH / 2,
+      ],
+      size: [innerWidth, STEP_LIGHT_HEIGHT, STEP_LIGHT_DEPTH],
     };
   });
 }

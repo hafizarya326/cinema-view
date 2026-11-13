@@ -13,7 +13,14 @@ import {
   SCREEN_WIDTH,
   SEAT_COUNT,
 } from "./config";
-import { getCeilingBox, getFloorSlabBoxes, getWallBoxes, type RoomBox } from "./scene";
+import {
+  getCeilingBox,
+  getFloorSlabBoxes,
+  getScreenFrameBoxes,
+  getStepLightBoxes,
+  getWallBoxes,
+  type RoomBox,
+} from "./scene";
 import { generateSeats } from "./seats";
 
 // Statuses are irrelevant here; only the eye geometry matters.
@@ -68,6 +75,34 @@ describe("studio sightline (config sanity)", () => {
   });
 });
 
+describe("studio sightline (screen frame stays outside the visible area)", () => {
+  it("keeps every frame member outside the screen rectangle and behind its plane", () => {
+    const halfWidth = SCREEN_WIDTH / 2;
+    const eps = 1e-9;
+
+    const offenders = getScreenFrameBoxes()
+      .map((box) => {
+        const minX = box.center[0] - box.size[0] / 2;
+        const maxX = box.center[0] + box.size[0] / 2;
+        const minY = box.center[1] - box.size[1] / 2;
+        const maxY = box.center[1] + box.size[1] / 2;
+        const maxZ = box.center[2] + box.size[2] / 2;
+
+        const outsideScreen =
+          maxX <= -halfWidth + eps ||
+          minX >= halfWidth - eps ||
+          maxY <= SCREEN_BOTTOM_Y + eps ||
+          minY >= SCREEN_TOP_Y - eps;
+
+        const behindScreen = maxZ <= SCREEN_CENTER_Z + eps;
+        return outsideScreen && behindScreen ? null : `${box.center.join(", ")}`;
+      })
+      .filter((value): value is string => value !== null);
+
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("studio sightline (eyes are inside the room)", () => {
   it("has every seat eye under the ceiling, between the walls, before the back wall", () => {
     expect(seats).toHaveLength(SEAT_COUNT);
@@ -103,6 +138,8 @@ describe("studio sightline (unobstructed view to the screen)", () => {
         ...getWallBoxes().map((box, index) => ({ name: `wall-${index}`, box })),
         { name: "ceiling", box: getCeilingBox() },
         ...floorColliders.map((box, index) => ({ name: `floor-${index}`, box })),
+        ...getScreenFrameBoxes().map((box, index) => ({ name: `frame-${index}`, box })),
+        ...getStepLightBoxes().map((box, index) => ({ name: `stepLight-${index}`, box })),
       ];
 
       for (const { name, point } of SCREEN_POINTS) {

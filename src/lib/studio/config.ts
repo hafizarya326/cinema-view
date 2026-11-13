@@ -54,6 +54,23 @@ export const SEAT_HEIGHT = 0.9;
 // Ceiling light hangs this far below the ceiling
 export const CEILING_LIGHT_INSET = 0.4;
 
+// Screen frame: thin black border sitting outside the visible screen area
+export const SCREEN_FRAME_THICKNESS = 0.25;
+export const SCREEN_FRAME_DEPTH = 0.18;
+
+// Procedural screen surface: gradient + test-pattern bars (no external texture)
+export const SCREEN_PATTERN = { width: 256, height: 128, bars: 7 };
+
+// Soft light spilling from the screen into the room
+export const SCREEN_GLOW_INTENSITY = 14;
+export const SCREEN_GLOW_DISTANCE = 22;
+export const SCREEN_GLOW_Z = 1.6;
+
+// Dim strip light on each step edge (drawn as one instanced mesh)
+export const STEP_LIGHT_HEIGHT = 0.03;
+export const STEP_LIGHT_DEPTH = 0.08;
+export const STEP_LIGHT_INSET = 0.06;
+
 // Static overview camera (first-person comes later)
 export const OVERVIEW_CAMERA_POSITION: [number, number, number] = [
   0,
@@ -85,10 +102,18 @@ export const SEAT_COLORS: Record<SeatStatus, string> = {
 
 export const SCENE_COLORS = {
   background: "#0A0A0B",
-  floor: "#1B1B1F",
-  wall: "#141416",
-  ceiling: "#101012",
-  screen: "#E5E7EB",
+  carpet: "#141418",
+  wall: "#16161B",
+  wallPanel: "#1C1C23",
+  ceiling: "#0E0E11",
+  screenTop: "#E2E8F0",
+  screenMid: "#94A3B8",
+  screenBottom: "#475569",
+  screenBar: "#0B0F19",
+  screenFrame: "#000000",
+  screenEmissive: "#FFFFFF",
+  screenGlow: "#9DB8FF",
+  stepLight: "#4A4A58",
 };
 
 // Visibility label colors (label tokens, not used by the 3D scene)

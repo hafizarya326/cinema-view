@@ -26,7 +26,11 @@ import {
   SCENE_COLORS,
   SCREEN_CENTER_Y,
   SCREEN_CENTER_Z,
+  SCREEN_GLOW_DISTANCE,
+  SCREEN_GLOW_INTENSITY,
+  SCREEN_GLOW_Z,
   SCREEN_HEIGHT,
+  SCREEN_PATTERN,
   SCREEN_WIDTH,
   SEAT_COUNT,
   SEAT_DEPTH,
@@ -47,29 +51,31 @@ import {
   disposeMesh,
   getCeilingBox,
   getFloorSlabBoxes,
+  getScreenFrameBoxes,
   getSeatColor,
   getSeatPosition,
+  getStepLightBoxes,
   getWallBoxes,
 } from "@/lib/studio/scene";
 import { getSeatZ } from "@/lib/studio/seats";
 import type { Seat } from "@/types";
 
-/** One slab per row: top surface at rowIndex * RAKE, so the front row stays at floor level. */
+/** Dark carpet floor, one stepped slab per row (front row stays at floor level). */
 function SteppedFloor() {
   return (
     <group>
       {getFloorSlabBoxes().map((box, rowIndex) => (
         <mesh key={ROW_LABELS[rowIndex]} position={box.center}>
           <boxGeometry args={box.size} />
-          <meshStandardMaterial color={SCENE_COLORS.floor} roughness={1} />
+          <meshStandardMaterial color={SCENE_COLORS.carpet} roughness={1} />
         </mesh>
       ))}
     </group>
   );
 }
 
+/** Paneled walls (side vs back tone) plus a dark ceiling. */
 function RoomShell() {
-  const wallMaterial = <meshStandardMaterial color={SCENE_COLORS.wall} roughness={1} />;
   const ceiling = getCeilingBox();
 
   return (
@@ -77,7 +83,10 @@ function RoomShell() {
       {getWallBoxes().map((box, index) => (
         <mesh key={index} position={box.center}>
           <boxGeometry args={box.size} />
-          {wallMaterial}
+          <meshStandardMaterial
+            color={index === 2 ? SCENE_COLORS.wallPanel : SCENE_COLORS.wall}
+            roughness={1}
+          />
         </mesh>
       ))}
       <mesh position={ceiling.center}>
@@ -88,17 +97,100 @@ function RoomShell() {
   );
 }
 
+/** Procedural screen surface: vertical gradient plus test-pattern bars. */
+function createScreenTexture(): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = SCREEN_PATTERN.width;
+  canvas.height = SCREEN_PATTERN.height;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, SCENE_COLORS.screenTop);
+  gradient.addColorStop(0.55, SCENE_COLORS.screenMid);
+  gradient.addColorStop(1, SCENE_COLORS.screenBottom);
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const barWidth = canvas.width / SCREEN_PATTERN.bars;
+  context.fillStyle = SCENE_COLORS.screenBar;
+  for (let index = 0; index < SCREEN_PATTERN.bars; index += 2) {
+    context.fillRect(index * barWidth, canvas.height * 0.72, barWidth, canvas.height * 0.28);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/** Emissive screen with a thin black frame that stays outside the visible area. */
 function ScreenPanel() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const texture = useMemo(() => createScreenTexture(), []);
+
+  useEffect(() => {
+    const mesh = meshRef.current;
+    return () => disposeMesh(mesh);
+  }, []);
+
   return (
-    <mesh position={[0, SCREEN_CENTER_Y, SCREEN_CENTER_Z]}>
-      <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
+    <group>
+      <mesh ref={meshRef} position={[0, SCREEN_CENTER_Y, SCREEN_CENTER_Z]}>
+        <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
+        <meshStandardMaterial
+          map={texture}
+          emissive={SCENE_COLORS.screenEmissive}
+          emissiveMap={texture}
+          emissiveIntensity={1.1}
+          toneMapped={false}
+          roughness={1}
+        />
+      </mesh>
+
+      {getScreenFrameBoxes().map((box, index) => (
+        <mesh key={index} position={box.center}>
+          <boxGeometry args={box.size} />
+          <meshStandardMaterial color={SCENE_COLORS.screenFrame} roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** One instanced mesh: a dim strip light on every step edge. */
+function StepLights() {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
+  const boxes = useMemo(() => getStepLightBoxes(), []);
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+
+    boxes.forEach((box, index) => {
+      matrix.setPosition(...box.center);
+      mesh.setMatrixAt(index, matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [boxes, matrix]);
+
+  useEffect(() => {
+    const mesh = meshRef.current;
+    return () => disposeMesh(mesh);
+  }, []);
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, boxes.length]}>
+      <boxGeometry args={boxes[0].size} />
       <meshStandardMaterial
-        color={SCENE_COLORS.screen}
-        emissive={SCENE_COLORS.screen}
-        emissiveIntensity={1.2}
+        color={SCENE_COLORS.stepLight}
+        emissive={SCENE_COLORS.stepLight}
+        emissiveIntensity={0.6}
         toneMapped={false}
       />
-    </mesh>
+    </instancedMesh>
   );
 }
 
@@ -111,6 +203,13 @@ function Lights() {
         position={[0, CEILING_HEIGHT - CEILING_LIGHT_INSET, getSeatZ(Math.floor(ROW_COUNT / 2))]}
         intensity={25}
         distance={ROOM_DEPTH * 2}
+        decay={2}
+      />
+      <pointLight
+        position={[0, SCREEN_CENTER_Y, SCREEN_GLOW_Z]}
+        color={SCENE_COLORS.screenGlow}
+        intensity={SCREEN_GLOW_INTENSITY}
+        distance={SCREEN_GLOW_DISTANCE}
         decay={2}
       />
     </>
@@ -365,6 +464,7 @@ export default function CinemaScene({
         <Lights />
         <RoomShell />
         <SteppedFloor />
+        <StepLights />
         <ScreenPanel />
         <Seats seats={seats} selectedSeatIds={selectedSeatIds} />
         <CameraRig
