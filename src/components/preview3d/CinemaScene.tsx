@@ -1,16 +1,15 @@
 "use client";
 
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";import type { ComponentRef, RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";import type { ComponentRef, RefObject } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
+  LOOK_DAMPING,
   LOOK_DRAG_SENSITIVITY,
   LOOK_KEY_STEP,
-  LOOK_RESET_SMOOTHING,
   CAMERA_FAR,
-  CAMERA_FOV,
   CAMERA_NEAR,
   CAMERA_TRANSITION_DURATION,
   CEILING_HEIGHT,
@@ -21,6 +20,7 @@ import {
   ORBIT_MIN_POLAR_ANGLE,
   OVERVIEW_CAMERA_POSITION,
   OVERVIEW_CAMERA_TARGET,
+  REDUCED_MOTION_TRANSITION_DURATION,
   ROOM_DEPTH,
   ROW_COUNT,
   ROW_LABELS,
@@ -41,6 +41,7 @@ import {
   type Vector3Tuple,
   clampLook,
   easeInOutCubic,
+  getEffectiveFov,
   getLookDirection,
   getModeView,
   interpolatePosition,
@@ -284,6 +285,21 @@ function ContextWatcher({ onContextLost }: { onContextLost?: () => void }) {
   return null;
 }
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+/** True when the user asked the OS to reduce motion. */
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const media = window.matchMedia(REDUCED_MOTION_QUERY);
+      media.addEventListener("change", onStoreChange);
+      return () => media.removeEventListener("change", onStoreChange);
+    },
+    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    () => false,
+  );
+}
+
 /**
  * Moves the camera between overview and the active seat (1.2s easeInOutCubic).
  * In seat mode the camera stays pinned to the eye and only the gaze turns:
@@ -301,6 +317,7 @@ function CameraRig({
   wrapperRef: RefObject<HTMLDivElement | null>;
 }) {
   const camera = useThree((state) => state.camera);
+  const reducedMotion = usePrefersReducedMotion();
   const transition = useRef<{
     progress: number;
     from: Vector3Tuple | null;
@@ -396,13 +413,16 @@ function CameraRig({
   useFrame((_, delta) => {
     const state = transition.current;
 
-    const smoothing = Math.min(1, delta * LOOK_RESET_SMOOTHING);    look.current = {
-      yaw: look.current.yaw + (lookTarget.current.yaw - look.current.yaw) * smoothing,
-      pitch: look.current.pitch + (lookTarget.current.pitch - look.current.pitch) * smoothing,
-    };
+    // Damped look: the gaze chases the clamped target without allocating.
+    const smoothing = Math.min(1, delta * LOOK_DAMPING);
+    look.current.yaw += (lookTarget.current.yaw - look.current.yaw) * smoothing;
+    look.current.pitch += (lookTarget.current.pitch - look.current.pitch) * smoothing;
 
     if (state.progress < 1 && state.from && state.fromTarget) {
-      state.progress = Math.min(1, state.progress + delta / CAMERA_TRANSITION_DURATION);
+      const duration = reducedMotion
+        ? REDUCED_MOTION_TRANSITION_DURATION
+        : CAMERA_TRANSITION_DURATION;
+      state.progress = Math.min(1, state.progress + delta / duration);
       const eased = easeInOutCubic(state.progress);
 
       camera.position.set(...interpolatePosition(state.from, view.position, eased));
@@ -429,6 +449,25 @@ function CameraRig({
   });
 
   return null;
+}
+
+/**
+ * Default camera. CAMERA_FOV is the horizontal reference angle, so this widens
+ * the vertical FOV on portrait viewports to keep the whole screen width in view.
+ */
+function ResponsiveCamera() {
+  const size = useThree((state) => state.size);
+  const aspect = size.width / Math.max(1, size.height);
+
+  return (
+    <PerspectiveCamera
+      makeDefault
+      position={OVERVIEW_CAMERA_POSITION}
+      fov={getEffectiveFov(aspect)}
+      near={CAMERA_NEAR}
+      far={CAMERA_FAR}
+    />
+  );
 }
 
 export default function CinemaScene({
@@ -461,17 +500,9 @@ export default function CinemaScene({
       aria-label="Pratinjau 3D studio. Klik dan geser untuk melihat sekeliling; saat mode Seat View, gunakan tombol panah untuk memutar pandangan dari kursi terpilih."
       className="size-full touch-none rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
     >
-      <Canvas
-        dpr={[1, 2]}
-        gl={{ antialias: true }}
-        camera={{
-          position: OVERVIEW_CAMERA_POSITION,
-          fov: CAMERA_FOV,
-          near: CAMERA_NEAR,
-          far: CAMERA_FAR,
-        }}
-      >
+      <Canvas dpr={[1, 2]} gl={{ antialias: true }}>
         <color attach="background" args={[SCENE_COLORS.background]} />
+        <ResponsiveCamera />
         <ContextWatcher onContextLost={onContextLost} />
         <Lights />
         <RoomShell />

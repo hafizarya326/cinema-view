@@ -97,8 +97,9 @@ export const LOOK_PITCH_MIN = -30; // degrees
 export const LOOK_PITCH_MAX = 30; // degrees
 export const LOOK_DRAG_SENSITIVITY = 0.25; // degrees per pixel dragged
 export const LOOK_KEY_STEP = 5; // degrees per arrow key press
-export const LOOK_RESET_SMOOTHING = 6; // per second, eases yaw/pitch back to 0
+export const LOOK_DAMPING = 6; // per second, lerp rate of the gaze toward its target
 export const CAMERA_TRANSITION_DURATION = 1.2; // seconds, easeInOutCubic
+export const REDUCED_MOTION_TRANSITION_DURATION = 0.15; // when prefers-reduced-motion is on
 
 // Colors for the 3D scene (design tokens)
 export const SEAT_COLORS: Record<SeatStatus, string> = {

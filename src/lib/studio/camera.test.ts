@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { OVERVIEW_CAMERA_POSITION } from "./config";
+import { CAMERA_FOV, OVERVIEW_CAMERA_POSITION } from "./config";
 import {
   type Vector3Tuple,
   clampLook,
   easeInOutCubic,
   getCameraPosition,
   getDefaultLookTarget,
+  getEffectiveFov,
   getLookDirection,
   getModeView,
   interpolatePosition,
+  sampleTransitionPath,
 } from "./camera";
 import { createSeat } from "./seats";
 
@@ -70,6 +72,41 @@ describe("interpolatePosition", () => {
     const to = getCameraPosition(j7);
 
     expect(interpolatePosition(from, to, easeInOutCubic(1))).toEqual(to);
+  });
+});
+
+describe("sampleTransitionPath", () => {
+  it("includes both endpoints and hits the requested sample count", () => {
+    const path = sampleTransitionPath([1, 1, 1], [2, 2, 2], 5);
+
+    expect(path).toHaveLength(5);
+    expect(path[0]).toEqual([1, 1, 1]);
+    expect(path[4]).toEqual([2, 2, 2]);
+  });
+
+  it("spaces the samples along the easing curve", () => {
+    const path = sampleTransitionPath([0, 0, 0], [10, 10, 10], 3);
+
+    expect(path[1][0]).toBeCloseTo(5, 10); // easeInOutCubic(0.5) = 0.5
+  });
+});
+
+describe("getEffectiveFov", () => {
+  it("keeps CAMERA_FOV for landscape and square viewports", () => {
+    expect(getEffectiveFov(16 / 9)).toBe(CAMERA_FOV);
+    expect(getEffectiveFov(4 / 3)).toBe(CAMERA_FOV);
+    expect(getEffectiveFov(1)).toBe(CAMERA_FOV);
+  });
+
+  it("widens the vertical FOV on portrait so the horizontal FOV stays CAMERA_FOV", () => {
+    const aspect = 9 / 16;
+    const vertical = getEffectiveFov(aspect);
+
+    expect(vertical).toBeGreaterThan(CAMERA_FOV);
+
+    const horizontal =
+      (2 * Math.atan(aspect * Math.tan((vertical * Math.PI) / 180 / 2)) * 180) / Math.PI;
+    expect(horizontal).toBeCloseTo(CAMERA_FOV, 6);
   });
 });
 
