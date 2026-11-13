@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ROW_LABELS } from "./config";
 import { generateSeats } from "./seats";
 import { getViewingInfo, getVisibilityLabel } from "./viewing";
 import type { Seat } from "@/types";
@@ -52,6 +53,18 @@ describe("getViewingInfo", () => {
     expect(getViewingInfo(seatById("F7")).visibilityScore).toBe(
       getViewingInfo(seatById("F8")).visibilityScore,
     );
+  });
+
+  it("keeps the best average visibilityScore in the premium rows", () => {
+    const rows = ROW_LABELS.map((row) => {
+      const rowSeats = seats.filter((seat) => seat.row === row);
+      const total = rowSeats.reduce((sum, seat) => sum + getViewingInfo(seat).visibilityScore, 0);
+      return { row, average: total / rowSeats.length, category: rowSeats[0].category };
+    });
+
+    const best = rows.reduce((top, current) => (current.average > top.average ? current : top));
+
+    expect(best.category).toBe("premium");
   });
 });
 
