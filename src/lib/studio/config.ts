@@ -46,10 +46,18 @@ export const CEILING_HEIGHT = Math.max(
 export const CEILING_THICKNESS = 0.2;
 export const ROOM_WALL_THICKNESS = 0.2;
 
-// Seat block used by the 3D scene
-export const SEAT_WIDTH = SEAT_PITCH * 0.8;
+// Chair geometry, floor-relative (used by the 3D scene and the sightline test)
+export const SEAT_WIDTH = SEAT_PITCH * 0.8; // cushion width (0.44)
 export const SEAT_DEPTH = 0.5;
-export const SEAT_HEIGHT = 0.9;
+export const SEAT_CUSHION_TOP_Y = 0.45;
+export const SEAT_CUSHION_HEIGHT = 0.45; // cushion sits on the floor
+export const SEAT_BACKREST_TOP_Y = 0.85; // must stay below EYE_HEIGHT (1.15)
+export const SEAT_BACKREST_THICKNESS = 0.08;
+export const SEAT_ARMREST_TOP_Y = 0.62;
+export const SEAT_ARMREST_HEIGHT = 0.18;
+export const SEAT_ARMREST_WIDTH = 0.06;
+// Total chair height; also the instanced-origin reference used by getSeatPosition.
+export const SEAT_HEIGHT = SEAT_BACKREST_TOP_Y;
 
 // Ceiling light hangs this far below the ceiling
 export const CEILING_LIGHT_INSET = 0.4;

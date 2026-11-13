@@ -17,8 +17,17 @@ import {
   SCREEN_HEIGHT,
   SCREEN_TOP_Y,
   SCREEN_WIDTH,
+  SEAT_ARMREST_HEIGHT,
+  SEAT_ARMREST_TOP_Y,
+  SEAT_ARMREST_WIDTH,
+  SEAT_BACKREST_TOP_Y,
+  SEAT_BACKREST_THICKNESS,
   SEAT_COLORS,
+  SEAT_CUSHION_HEIGHT,
+  SEAT_CUSHION_TOP_Y,
+  SEAT_DEPTH,
   SEAT_HEIGHT,
+  SEAT_WIDTH,
   STEP_LIGHT_DEPTH,
   STEP_LIGHT_HEIGHT,
   STEP_LIGHT_INSET,
@@ -37,6 +46,49 @@ export interface RoomBox {
 export function getSeatPosition(seat: Seat): [number, number, number] {
   const floorY = seat.y - EYE_HEIGHT;
   return [seat.x, floorY + SEAT_HEIGHT / 2, seat.z];
+}
+
+/**
+ * Chair parts in local coordinates, relative to the seat instance origin
+ * (getSeatPosition). Backrest sits behind the cushion (+Z), facing the screen.
+ * Used directly to build the merged chair geometry.
+ */
+export function getSeatPartBoxes(): RoomBox[] {
+  const toLocalY = (floorY: number) => floorY - SEAT_HEIGHT / 2;
+
+  const cushionBottom = SEAT_CUSHION_TOP_Y - SEAT_CUSHION_HEIGHT;
+  const armrestBottom = SEAT_ARMREST_TOP_Y - SEAT_ARMREST_HEIGHT;
+  const armrestX = SEAT_WIDTH / 2 - SEAT_ARMREST_WIDTH / 2;
+  const backrestZ = SEAT_DEPTH / 2 + SEAT_BACKREST_THICKNESS / 2;
+
+  return [
+    {
+      center: [0, toLocalY((cushionBottom + SEAT_CUSHION_TOP_Y) / 2), 0],
+      size: [SEAT_WIDTH, SEAT_CUSHION_HEIGHT, SEAT_DEPTH],
+    },
+    {
+      center: [0, toLocalY((SEAT_CUSHION_TOP_Y + SEAT_BACKREST_TOP_Y) / 2), backrestZ],
+      size: [SEAT_WIDTH, SEAT_BACKREST_TOP_Y - SEAT_CUSHION_TOP_Y, SEAT_BACKREST_THICKNESS],
+    },
+    {
+      center: [-armrestX, toLocalY((armrestBottom + SEAT_ARMREST_TOP_Y) / 2), 0],
+      size: [SEAT_ARMREST_WIDTH, SEAT_ARMREST_HEIGHT, SEAT_DEPTH],
+    },
+    {
+      center: [armrestX, toLocalY((armrestBottom + SEAT_ARMREST_TOP_Y) / 2), 0],
+      size: [SEAT_ARMREST_WIDTH, SEAT_ARMREST_HEIGHT, SEAT_DEPTH],
+    },
+  ];
+}
+
+/** World-space AABBs of a seat's cushion, backrest, and two armrests. */
+export function getSeatBoxes(seat: Seat): RoomBox[] {
+  const [ox, oy, oz] = getSeatPosition(seat);
+
+  return getSeatPartBoxes().map((box) => ({
+    center: [box.center[0] + ox, box.center[1] + oy, box.center[2] + oz],
+    size: box.size,
+  }));
 }
 
 /** Left, right, and back walls. Single source of truth for the scene and the sightline test. */
