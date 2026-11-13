@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import SeatChips from "@/components/booking/SeatChips";
+import SeatComparison from "@/components/booking/SeatComparison";
 import ViewingInfoPanel from "@/components/booking/ViewingInfoPanel";
 import SceneErrorBoundary from "@/components/preview3d/SceneErrorBoundary";
 import SeatMap from "@/components/seatmap/SeatMap";
@@ -187,6 +188,13 @@ export default function BookingPreview() {
 
         <ViewingInfoPanel seats={seats} backHref={`/booking/${showtime.movieId}`} />
       </div>
+
+      {/* Outside the touch-none canvas wrapper: horizontal scroll stays inside this box. */}
+      <SeatComparison
+        seats={selectedSeats}
+        activeSeatId={activeSeatId}
+        onSelectSeat={setActiveSeat}
+      />
     </div>
   );
 }
