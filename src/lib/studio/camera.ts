@@ -1,4 +1,5 @@
 import {
+  CAMERA_FOV,
   LOOK_PITCH_MAX,
   LOOK_PITCH_MIN,
   LOOK_YAW_LIMIT,
@@ -42,6 +43,22 @@ export function interpolatePosition(
   ];
 }
 
+/**
+ * Eased camera positions along the straight path from -> to. `steps >= 2`
+ * samples include both endpoints, so the path is exactly what the frame loop
+ * renders for the transition.
+ */
+export function sampleTransitionPath(
+  from: Vector3Tuple,
+  to: Vector3Tuple,
+  steps: number,
+): Vector3Tuple[] {
+  const count = Math.max(2, Math.floor(steps));
+  return Array.from({ length: count }, (_, index) =>
+    interpolatePosition(from, to, easeInOutCubic(index / (count - 1))),
+  );
+}
+
 /** Camera pose for a mode; seat mode falls back to overview without a seat. */
 export function getModeView(
   mode: CameraMode,
@@ -67,6 +84,18 @@ export function clampLook(yaw: number, pitch: number): LookAngles {
 }
 
 const DEG_TO_RAD = Math.PI / 180;
+
+/**
+ * Vertical camera FOV for a given aspect (width / height). CAMERA_FOV is the
+ * horizontal reference angle: landscape and square keep it as-is, while a
+ * portrait viewport widens the vertical FOV so the same screen width still fits.
+ */
+export function getEffectiveFov(aspect: number): number {
+  if (aspect >= 1) return CAMERA_FOV;
+
+  const halfHorizontal = (CAMERA_FOV * DEG_TO_RAD) / 2;
+  return (2 * Math.atan(Math.tan(halfHorizontal) / aspect)) / DEG_TO_RAD;
+}
 
 function normalize(vector: Vector3Tuple): Vector3Tuple {
   const length = Math.hypot(vector[0], vector[1], vector[2]) || 1;

@@ -23,6 +23,7 @@ import {
   type RoomBox,
 } from "./scene";
 import { generateSeats } from "./seats";
+import { sampleTransitionPath } from "./camera";
 
 // Statuses are irrelevant here; only the eye geometry matters.
 const seats = generateSeats("sightline-test");
@@ -190,6 +191,45 @@ describe("studio sightline (chairs never block the screen)", () => {
         return !(seat.y > backrestTop && seat.z < backrestFrontZ);
       })
       .map((seat) => seat.id);
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("studio sightline (transition path stays clear)", () => {
+  const cornerIds = ["A1", "A14", "J1", "J14", "F7"];
+  const corners = cornerIds.map((id) => {
+    const seat = seats.find((item) => item.id === id);
+    if (!seat) throw new Error(`seat ${id} missing`);
+    return seat;
+  });
+  const chairBoxes = seats.flatMap((seat) => getSeatBoxes(seat));
+
+  const isInsideRoom = ([x, y, z]: Vec3) =>
+    Math.abs(x) < ROOM_WIDTH / 2 - ROOM_WALL_THICKNESS &&
+    y > 0 &&
+    y < CEILING_HEIGHT - CEILING_THICKNESS / 2 &&
+    z > 0 &&
+    z < ROOM_DEPTH - ROOM_WALL_THICKNESS;
+
+  it("keeps every sampled point inside the room and out of every chair", () => {
+    const offenders: string[] = [];
+
+    for (const from of corners) {
+      for (const to of corners) {
+        const path = sampleTransitionPath([from.x, from.y, from.z], [to.x, to.y, to.z], 24);
+
+        path.forEach((point, index) => {
+          if (!isInsideRoom(point)) {
+            offenders.push(`${from.id}->${to.id} #${index} outside the room`);
+            return;
+          }
+          if (chairBoxes.some((box) => segmentHitsBox(point, point, box))) {
+            offenders.push(`${from.id}->${to.id} #${index} inside a chair`);
+          }
+        });
+      }
+    }
 
     expect(offenders).toEqual([]);
   });
