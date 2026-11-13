@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatRupiah, getCategoryLabel, getSeatAriaLabel, getSeatStatusLabel } from "@/lib/booking";
-import { ROW_LABELS, SEATS_PER_ROW, VISIBILITY_COLORS } from "@/lib/studio/config";
+import { CATEGORY_PRICES, ROW_LABELS, SEATS_PER_ROW, VISIBILITY_COLORS } from "@/lib/studio/config";
 import { getViewingInfo } from "@/lib/studio/viewing";
-import type { Seat, SeatStatus } from "@/types";
+import type { Seat, SeatCategory, SeatStatus } from "@/types";
 
 const SEAT_BG: Record<SeatStatus, string> = {
   available: "bg-seat-available",
@@ -19,6 +19,7 @@ const UNAVAILABLE_PATTERN = {
 };
 
 const LEGEND: SeatStatus[] = ["available", "selected", "occupied", "unavailable"];
+const CATEGORY_LEGEND: SeatCategory[] = ["front", "standard", "premium"];
 
 /** Keys handled by the roving tabindex; Enter/Space keep the native button behaviour. */
 const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
@@ -35,9 +36,26 @@ export default function SeatMap({
   onToggleSeat: (seat: Seat) => void;
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [canScroll, setCanScroll] = useState(false);
   // Exactly one seat is tabbable: the last one focused, or the first seat.
   const tabbableId = focusId ?? seats[0]?.id ?? null;
+
+  // After mount: center the map so the middle seats are visible, and track whether
+  // the row overflows (drives the scroll hint). Runs client-only, so no SSR mismatch.
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+
+    const measure = () => setCanScroll(element.scrollWidth - element.clientWidth > 1);
+
+    element.scrollLeft = Math.max(0, (element.scrollWidth - element.clientWidth) / 2);
+    measure();
+
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   const rows = ROW_LABELS.map((row) =>
     seats.filter((seat) => seat.row === row).sort((a, b) => a.number - b.number),
@@ -67,14 +85,18 @@ export default function SeatMap({
         <p className="text-center text-xs uppercase tracking-widest text-muted">Layar</p>
         <div className="mx-auto h-2 w-3/4 rounded-full bg-foreground/25" />
 
-        <div className="overflow-x-auto px-1 pt-14 pb-3">
+        <div
+          ref={scrollRef}
+          data-testid="seat-map-scroll"
+          className="overflow-x-auto px-1 pt-14 pb-3"
+        >
           <div ref={gridRef} role="group" aria-label="Peta kursi" className="mx-auto w-fit">
             <div className="mb-2 flex items-center gap-1">
               <span className="w-4 shrink-0" />
               {Array.from({ length: SEATS_PER_ROW }, (_, index) => (
                 <span
                   key={index}
-                  className="grid size-10 shrink-0 place-items-center text-[10px] text-muted sm:size-7"
+                  className="grid size-10 shrink-0 place-items-center text-[10px] text-muted lg:size-7"
                 >
                   {index + 1}
                 </span>
@@ -115,7 +137,7 @@ export default function SeatMap({
                         event.preventDefault();
                         moveFocus(seat, event.key);
                       }}
-                      className={`group relative size-10 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface sm:size-7 ${
+                      className={`group relative size-10 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface lg:size-7 ${
                         SEAT_BG[status]
                       } ${blocked ? "cursor-not-allowed opacity-80" : "hover:scale-110"} ${
                         seat.id === activeSeatId ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : ""
@@ -141,11 +163,25 @@ export default function SeatMap({
         </div>
       </div>
 
+      {canScroll && (
+        <p aria-hidden="true" className="text-center text-xs text-muted lg:hidden">
+          ⟨ Geser untuk melihat semua kursi ⟩
+        </p>
+      )}
+
       <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
         {LEGEND.map((status) => (
           <li key={status} className="flex items-center gap-2">
             <span className={`size-3 rounded-sm ${SEAT_BG[status]}`} aria-hidden="true" />
             {getSeatStatusLabel(status)}
+          </li>
+        ))}
+      </ul>
+
+      <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
+        {CATEGORY_LEGEND.map((category) => (
+          <li key={category}>
+            {getCategoryLabel(category)} · {formatRupiah(CATEGORY_PRICES[category])}
           </li>
         ))}
       </ul>
