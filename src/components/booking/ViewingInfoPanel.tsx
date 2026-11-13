@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { formatDegrees, formatMeters, formatRupiah, getCategoryLabel } from "@/lib/booking";
 import { VISIBILITY_COLORS } from "@/lib/studio/config";
+import { getBestSeats } from "@/lib/studio/recommend";
 import { getViewingInfo } from "@/lib/studio/viewing";
 import { useBookingStore } from "@/store/bookingStore";
 import type { Seat } from "@/types";
@@ -20,6 +22,7 @@ export default function ViewingInfoPanel({
 }) {
   const activeSeatId = useBookingStore((state) => state.activeSeatId);
   const seat = seats.find((item) => item.id === activeSeatId);
+  const bestAvailable = useMemo(() => getBestSeats(seats, 1).seats[0], [seats]);
 
   if (!seat) {
     return (
@@ -78,6 +81,14 @@ export default function ViewingInfoPanel({
           {info.visibilityScore} · {info.visibilityLabel}
         </span>
       </div>
+
+      {bestAvailable && (
+        <p className="rounded-2xl border border-border px-3 py-2 text-xs text-muted">
+          {getViewingInfo(bestAvailable).visibilityScore > info.visibilityScore
+            ? `${getViewingInfo(bestAvailable).visibilityScore - info.visibilityScore} poin di bawah kursi terbaik`
+            : "Ini kursi terbaik yang tersedia"}
+        </p>
+      )}
     </section>
   );
 }

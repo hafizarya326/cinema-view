@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SelectedSeatsPanel from "@/components/booking/SelectedSeatsPanel";
 import SeatMap from "@/components/seatmap/SeatMap";
+import SeatRecommender from "@/components/seatmap/SeatRecommender";
 import { applyBookedSeats, useIsMounted } from "@/lib/bookings";
 import { formatDateLabel, showtimesForDate } from "@/lib/showtimes";
 import { generateSeats } from "@/lib/studio/seats";
@@ -125,12 +126,15 @@ export default function BookingClient({
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-muted">Pilih kursi</h2>
           {showtime ? (
-            <SeatMap
-              seats={seats}
-              selectedSeatIds={selectedSeatIds}
-              activeSeatId={activeSeatId}
-              onToggleSeat={toggleSeat}
-            />
+            <div className="flex flex-col gap-4">
+              <SeatRecommender seats={seats} />
+              <SeatMap
+                seats={seats}
+                selectedSeatIds={selectedSeatIds}
+                activeSeatId={activeSeatId}
+                onToggleSeat={toggleSeat}
+              />
+            </div>
           ) : (
             <div className="grid place-items-center rounded-2xl border border-dashed border-border bg-surface px-4 py-16 text-sm text-muted">
               Pilih jam tayang dulu untuk melihat peta kursi.

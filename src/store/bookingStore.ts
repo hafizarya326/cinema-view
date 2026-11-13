@@ -11,6 +11,7 @@ interface BookingState {
   setMovie: (movie: Movie) => void;
   setShowtime: (showtime: Showtime | null) => void;
   toggleSeat: (seat: Seat) => void;
+  selectSeats: (seats: Seat[]) => void;
   setActiveSeat: (seatId: string) => void;
   removeSeats: (seatIds: string[]) => void;
   clearSeats: () => void;
@@ -47,6 +48,18 @@ export const useBookingStore = create<BookingState>()(
           if (state.selectedSeatIds.length >= MAX_SEATS_PER_BOOKING) return {};
 
           return { selectedSeatIds: [...state.selectedSeatIds, seat.id], activeSeatId: seat.id };
+        }),
+
+      // Replaces the whole selection (used by the seat recommender); first pick is active.
+      selectSeats: (seats) =>
+        set(() => {
+          const usable = seats
+            .filter((seat) => seat.status === "available")
+            .slice(0, MAX_SEATS_PER_BOOKING);
+          return {
+            selectedSeatIds: usable.map((seat) => seat.id),
+            activeSeatId: usable[0]?.id ?? null,
+          };
         }),
 
       setActiveSeat: (seatId) =>
