@@ -75,6 +75,14 @@ Semua angka geometri hidup di [`src/lib/studio/config.ts`](src/lib/studio/config
 | Tinggi mata dari lantai | 1.15 m |
 | FOV kamera | 60° |
 
+Kategori dan harga kursi (berdasarkan baris):
+
+| Baris | Kategori | Harga |
+|---|---|---|
+| A–C | Front | Rp40.000 |
+| D–F | Standard | Rp50.000 |
+| G–J | Premium | Rp65.000 |
+
 Posisi kursi (row index `i` dari 0, nomor kursi `n` dari 1, `N` = kursi per baris):
 
 - `x = (n - (N + 1) / 2) * SEAT_PITCH`
