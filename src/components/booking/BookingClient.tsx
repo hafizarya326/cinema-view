@@ -123,10 +123,10 @@ export default function BookingClient({
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <section className="flex flex-col gap-3">
+        <section className="flex min-w-0 flex-col gap-3">
           <h2 className="text-sm font-semibold text-muted">Pilih kursi</h2>
           {showtime ? (
-            <div className="flex flex-col gap-4">
+            <div className="flex min-w-0 flex-col gap-4">
               <SeatRecommender seats={seats} />
               <SeatMap
                 seats={seats}
