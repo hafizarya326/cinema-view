@@ -80,8 +80,8 @@ export default function SeatMap({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4">
+    <div className="flex min-w-0 flex-col gap-6">
+      <div className="flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-surface p-4">
         <p className="text-center text-xs uppercase tracking-widest text-muted">Layar</p>
         <div className="mx-auto h-2 w-3/4 rounded-full bg-foreground/25" />
 
