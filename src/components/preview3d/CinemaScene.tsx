@@ -416,12 +416,7 @@ function CameraRig({
     };
 
     // Keyboard look-around: arrows nudge the gaze, clamped exactly like dragging.
-    // Escape always blurs the 3D viewport so keyboard users are never trapped.
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        element.blur();
-        return;
-      }
       if (inputLocked()) return;
 
       let { yaw, pitch } = lookTarget.current;
@@ -635,6 +630,10 @@ const CinemaScene = memo(function CinemaScene({
       tabIndex={0}
       aria-label="Pratinjau 3D studio"
       aria-describedby={descriptionId}
+      onKeyDown={(event) => {
+        // Attached directly on the wrapper so Escape exits focus immediately, even before Canvas mounts.
+        if (event.key === "Escape") event.currentTarget.blur();
+      }}
       className="relative size-full touch-none rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <p id={descriptionId} className="sr-only">
