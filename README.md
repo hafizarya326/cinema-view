@@ -1,5 +1,7 @@
 # Cinema View — See Your Seat Before You Book
 
+[![CI](https://github.com/hafizarya326/cinema-view/actions/workflows/ci.yml/badge.svg)](https://github.com/hafizarya326/cinema-view/actions/workflows/ci.yml)
+
 Website pemesanan tiket bioskop dengan pemilihan kursi interaktif dan preview 3D dari sudut pandang kursi. Fitur utamanya: kamera 3D pindah ke posisi mata penonton di kursi yang dipilih, jadi kamu bisa melihat pemandangan dari kursimu sebelum memesan.
 
 Semua data bersifat mock: tidak ada backend, autentikasi, pembayaran, atau admin panel. Booking disimpan di `localStorage` sebagai tiruan.
@@ -22,6 +24,30 @@ npm run lint     # eslint
 npm run build    # build produksi
 npm run start    # jalankan hasil build
 ```
+
+## Testing
+
+- **Unit test (Vitest + React Testing Library):**
+  ```bash
+  npm run test        # sekali jalan
+  npm run test:watch  # mode watch
+  ```
+- **End-to-End test (Playwright, desktop 1280×800 & mobile 360×800):**
+  ```bash
+  npm run e2e
+  ```
+  `playwright.config.ts` memakai Google Chrome terpasang (`channel: "chrome"`) dengan software WebGL (`SwiftShader`). Jika Chrome tidak tersedia di lingkungan CI tertentu, workflow otomatis mengunduh Chromium bawaan Playwright dan menyalakan fallback `PLAYWRIGHT_USE_BUNDLED_CHROMIUM=1`.
+- **Debug statistik scene 3D (`?debug=1`):**
+  Buka `/booking/preview?debug=1` setelah memilih kursi untuk menampilkan overlay kecil berisi `FPS`, `Draw call`, `Triangle`, `Geometri`, dan `Texture` dari `renderer.info`. Tanpa parameter `?debug=1`, overlay tidak dimuat sama sekali.
+
+## Deploy
+
+Aplikasi siap dideploy ke **Vercel** tanpa konfigurasi tambahan:
+
+1. Hubungkan repositori GitHub ini ke proyek baru di Vercel.
+2. Vercel mendeteksi framework **Next.js** secara otomatis (`npm run build` / output standar).
+3. Tidak ada variabel environment wajib untuk MVP (lihat [`.env.example`](.env.example)).
+4. Opsional: isi `NEXT_PUBLIC_SITE_URL` bila memakai domain kustom untuk `metadataBase`, `/robots.txt`, dan `/sitemap.xml` (tanpa ini otomatis memakai domain Vercel atau fallback `http://localhost:3000`).
 
 ## Struktur folder
 

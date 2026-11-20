@@ -2,16 +2,25 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Footer from "@/components/ui/Footer";
 import Navbar from "@/components/ui/Navbar";
+import { getSiteUrl } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "Cinema View",
     template: "%s",
   },
   description: "Pilih kursi bioskop dan lihat pemandangan dari kursimu sebelum memesan.",
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    siteName: "Cinema View",
+    title: "Cinema View",
+    description: "Pilih kursi bioskop dan lihat pemandangan dari kursimu sebelum memesan.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

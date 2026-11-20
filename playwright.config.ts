@@ -1,23 +1,26 @@
 import { defineConfig } from "@playwright/test";
 
 const BASE_URL = "http://localhost:3000";
+const IS_CI = Boolean(process.env.CI);
+const USE_BUNDLED_CHROMIUM = process.env.PLAYWRIGHT_USE_BUNDLED_CHROMIUM === "1";
 
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   // The production server is a single Node process; too many workers starve it
   // and page.goto stalls waiting for "load".
-  workers: 2,
-  forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
-  reporter: [["list"]],
+  workers: IS_CI ? 2 : 2,
+  forbidOnly: IS_CI,
+  retries: IS_CI ? 1 : 0,
+  reporter: IS_CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   use: {
     baseURL: BASE_URL,
-    // The bundled Playwright Chromium binary is blocked by this machine's
-    // Application Control policy (spawn UNKNOWN), so drive the installed Chrome.
-    channel: "chrome",
+    // Locally, bundled Playwright Chromium is blocked by Application Control policy
+    // (spawn UNKNOWN), so drive the installed Chrome. On CI, ubuntu-latest ships
+    // Google Chrome; if missing, the workflow sets PLAYWRIGHT_USE_BUNDLED_CHROMIUM=1.
+    ...(USE_BUNDLED_CHROMIUM ? {} : { channel: "chrome" }),
     trace: "on-first-retry",
     // Headless Chromium has no GPU: allow the software WebGL (SwiftShader) path.
     launchOptions: {
@@ -38,9 +41,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run build && npm run start",
+    // CI runs `npm run build` as its own workflow step before `npm run e2e`.
+    command: IS_CI ? "npm run start" : "npm run build && npm run start",
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !IS_CI,
     timeout: 240_000,
   },
 });
