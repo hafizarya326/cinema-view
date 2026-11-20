@@ -8,7 +8,10 @@ const links = [
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
-      <nav className="mx-auto flex h-14 w-full max-w-6xl items-center gap-4 px-4 sm:h-16 sm:gap-6">
+      <nav
+        aria-label="Navigasi utama"
+        className="mx-auto flex h-14 w-full max-w-6xl items-center gap-4 px-4 sm:h-16 sm:gap-6"
+      >
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <span className="grid size-6 place-items-center rounded-md bg-accent text-xs text-foreground">
             CV

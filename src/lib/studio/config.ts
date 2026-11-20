@@ -125,10 +125,21 @@ export const SCENE_COLORS = {
   stepLight: "#4A4A58",
 };
 
+// UI color tokens (kept in sync with src/app/globals.css)
+export const UI_TOKENS = {
+  background: "#0A0A0B",
+  surface: "#141416",
+  border: "#26262B",
+  foreground: "#F5F5F7",
+  muted: "#9A9AA3",
+  accent: "#D90914",
+  accentText: "#F87171",
+} as const;
+
 // Visibility label colors (label tokens, not used by the 3D scene)
 export const VISIBILITY_COLORS: Record<VisibilityLabel, string> = {
   Excellent: "#22C55E",
   Good: "#A3E635",
   Fair: "#EAB308",
-  Poor: "#E50914",
+  Poor: "#F87171",
 };

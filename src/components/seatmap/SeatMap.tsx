@@ -24,6 +24,48 @@ const CATEGORY_LEGEND: SeatCategory[] = ["front", "standard", "premium"];
 /** Keys handled by the roving tabindex; Enter/Space keep the native button behaviour. */
 const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
 
+/** Non-color status glyphs so seat status is never communicated by color alone. */
+function SeatStatusMark({ status, compact = false }: { status: SeatStatus; compact?: boolean }) {
+  const iconClass = compact ? "size-3" : "size-3.5 lg:size-3";
+
+  if (status === "selected") {
+    return (
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        data-seat-mark="selected"
+        className={`${iconClass} text-background`}
+      >
+        <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+      </svg>
+    );
+  }
+
+  if (status === "occupied") {
+    return (
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        aria-hidden="true"
+        data-seat-mark="occupied"
+        className={`${iconClass} text-foreground`}
+      >
+        <path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5" />
+      </svg>
+    );
+  }
+
+  return null;
+}
+
 const SeatButton = memo(function SeatButton({
   seat,
   isSelected,
@@ -70,13 +112,14 @@ const SeatButton = memo(function SeatButton({
         event.preventDefault();
         onMoveFocus(seat, event.key);
       }}
-      className={`group relative size-10 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface lg:size-7 ${
+      className={`group relative grid size-10 shrink-0 place-items-center rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-1 focus-visible:ring-offset-surface lg:size-7 ${
         SEAT_BG[status]
       } ${blocked ? "cursor-not-allowed opacity-80" : "hover:scale-110"} ${
         isActive ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : ""
       }`}
       style={status === "unavailable" ? UNAVAILABLE_PATTERN : undefined}
     >
+      <SeatStatusMark status={status} />
       {/* CSS-only tooltip: shows on hover or keyboard focus, never blocks clicks. */}
       <span
         aria-hidden="true"
@@ -134,6 +177,17 @@ const SeatMap = memo(function SeatMap({
     [seats],
   );
   const selectedSet = useMemo(() => new Set(selectedSeatIds), [selectedSeatIds]);
+  const selectedSummary = useMemo(() => {
+    let count = 0;
+    let total = 0;
+    for (const seat of seats) {
+      if (selectedSet.has(seat.id)) {
+        count += 1;
+        total += seat.price;
+      }
+    }
+    return { count, total };
+  }, [seats, selectedSet]);
 
   /** Arrow / Home / End move the roving focus; selection is untouched. */
   const moveFocus = useCallback((seat: Seat, key: string) => {
@@ -205,10 +259,22 @@ const SeatMap = memo(function SeatMap({
         </p>
       )}
 
+      <p aria-live="polite" aria-atomic="true" data-testid="seat-selection-live" className="sr-only">
+        {selectedSummary.count === 0
+          ? "Belum ada kursi dipilih."
+          : `${selectedSummary.count} kursi dipilih, total ${formatRupiah(selectedSummary.total)}.`}
+      </p>
+
       <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
         {LEGEND.map((status) => (
           <li key={status} className="flex items-center gap-2">
-            <span className={`size-3 rounded-sm ${SEAT_BG[status]}`} aria-hidden="true" />
+            <span
+              className={`inline-grid size-4 place-items-center rounded-sm ${SEAT_BG[status]}`}
+              style={status === "unavailable" ? UNAVAILABLE_PATTERN : undefined}
+              aria-hidden="true"
+            >
+              <SeatStatusMark status={status} compact />
+            </span>
             {getSeatStatusLabel(status)}
           </li>
         ))}

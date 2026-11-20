@@ -13,6 +13,7 @@ import { applyBookedSeats, useIsMounted } from "@/lib/bookings";
 import type { CameraMode } from "@/lib/studio/camera";
 import { isWebGLAvailable } from "@/lib/studio/scene";
 import { generateSeats } from "@/lib/studio/seats";
+import { getViewingInfo } from "@/lib/studio/viewing";
 import { useBookingStore } from "@/store/bookingStore";
 import type { Seat } from "@/types";
 
@@ -89,6 +90,34 @@ const PreviewCinemaScene = memo(function PreviewCinemaScene({
       mode={mode}
       onContextLost={onContextLost}
     />
+  );
+});
+
+const PreviewActiveSeatSummary = memo(function PreviewActiveSeatSummary({
+  seats,
+}: {
+  seats: Seat[];
+}) {
+  const activeSeatId = useBookingStore((state) => state.activeSeatId);
+  const seat = useMemo(
+    () => seats.find((item) => item.id === activeSeatId) ?? null,
+    [seats, activeSeatId],
+  );
+
+  if (!seat) {
+    return (
+      <p className="sr-only" data-testid="active-seat-summary">
+        Belum ada kursi aktif di pratinjau 3D.
+      </p>
+    );
+  }
+
+  const info = getViewingInfo(seat);
+  return (
+    <p className="sr-only" data-testid="active-seat-summary">
+      Ringkasan kursi aktif: Baris {seat.row} kursi {seat.number} ({seat.id}), skor visibilitas{" "}
+      {info.visibilityScore} ({info.visibilityLabel}).
+    </p>
   );
 });
 
@@ -243,6 +272,7 @@ export default function BookingPreview() {
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         {/* Panel lives outside the touch-none canvas wrapper so scrolling it works on mobile. */}
         <div>
+          <PreviewActiveSeatSummary seats={seats} />
           {!webglAvailable || sceneFailed ? (
             seatMapFallback
           ) : (

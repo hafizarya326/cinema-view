@@ -45,7 +45,7 @@ export default function MovieCatalog({ movies }: { movies: Movie[] }) {
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {results.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} />
+            <MovieCard key={movie.id} movie={movie} headingLevel="h2" />
           ))}
         </div>
       )}

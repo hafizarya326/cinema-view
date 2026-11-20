@@ -94,11 +94,11 @@ const SeatComparison = memo(function SeatComparison({
                       onClick={() => onSelectSeat(seat.id)}
                       aria-pressed={isActive}
                       aria-label={`Kursi ${seat.id}${isActive ? ", aktif" : ""}`}
-                      className="min-h-10 rounded-lg text-left underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      className="min-h-10 rounded-lg text-left underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
                     >
                       {seat.id}
                     </button>
-                    {isActive && <span className="ml-2 text-xs text-accent">Aktif</span>}
+                    {isActive && <span className="ml-2 text-xs text-accent-text">Aktif</span>}
                   </th>
                   <td className="px-4 py-2">{getCategoryLabel(seat.category)}</td>
                   <td className="px-4 py-2">

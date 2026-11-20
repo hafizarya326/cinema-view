@@ -50,7 +50,7 @@ function OrderSummary({
       </dl>
 
       <div className="flex flex-col gap-2 border-t border-border pt-3 text-sm">
-        <h3 className="text-xs text-muted">Kursi</h3>
+        <h2 className="text-xs text-muted">Kursi</h2>
         <ul className="flex flex-col gap-2">
           {seats.map((seat) => (
             <li key={seat.id} className="flex items-center justify-between gap-3">
@@ -99,6 +99,11 @@ export default function CheckoutClient() {
     const confirmedSeats = seats.filter((seat) => confirmed.seatIds.includes(seat.id));
     return (
       <div className="flex flex-col gap-4">
+        <p aria-live="polite" aria-atomic="true" data-testid="checkout-live" className="sr-only">
+          Pesanan dikonfirmasi: {confirmed.seatCount} kursi, total{" "}
+          {formatRupiah(confirmed.totalPrice)}. Kode booking {confirmed.code}.
+        </p>
+
         <div className="flex flex-col gap-1 rounded-2xl border border-seat-selected bg-surface p-4">
           <span className="text-xs text-muted">Kode booking</span>
           <span className="text-2xl font-semibold tracking-wider">{confirmed.code}</span>
@@ -143,6 +148,7 @@ export default function CheckoutClient() {
   }
 
   const selectedSeats = seats.filter((seat) => selectedSeatIds.includes(seat.id));
+  const selectedTotal = getSeatsSubtotal(selectedSeats);
   const title = getMovieById(movies, showtime.movieId)?.title ?? showtime.movieId;
 
   const confirm = () => {
@@ -176,6 +182,10 @@ export default function CheckoutClient() {
 
   return (
     <div className="flex flex-col gap-4">
+      <p aria-live="polite" aria-atomic="true" data-testid="checkout-live" className="sr-only">
+        {selectedSeats.length} kursi dipilih, total {formatRupiah(selectedTotal)}.
+      </p>
+
       {conflicts.length > 0 && (
         <div
           role="alert"

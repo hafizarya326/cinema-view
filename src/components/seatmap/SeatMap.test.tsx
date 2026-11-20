@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import SeatMap from "./SeatMap";
-import { formatRupiah, getCategoryLabel } from "@/lib/booking";
+import { formatRupiah, getCategoryLabel, getSeatStatusLabel } from "@/lib/booking";
 import { CATEGORY_PRICES, ROW_LABELS, SEATS_PER_ROW } from "@/lib/studio/config";
 import { createSeat } from "@/lib/studio/seats";
 import type { Seat, SeatCategory, SeatStatus } from "@/types";
@@ -208,5 +208,65 @@ describe("SeatMap layout aids", () => {
         screen.getByText(`${getCategoryLabel(category)} · ${formatRupiah(CATEGORY_PRICES[category])}`),
       ).toBeInTheDocument();
     }
+  });
+
+  it("renders non-color markers for selected, occupied, and unavailable seats and legend", () => {
+    const seats = buildSeats().map((seat) => {
+      if (seat.id === "F8") return { ...seat, status: "occupied" as const };
+      if (seat.id === "F9") return { ...seat, status: "unavailable" as const };
+      return seat;
+    });
+
+    render(
+      <SeatMap
+        seats={seats}
+        selectedSeatIds={["F7"]}
+        activeSeatId="F7"
+        onToggleSeat={vi.fn()}
+      />,
+    );
+
+    expect(seatButton("F7").querySelector('[data-seat-mark="selected"]')).not.toBeNull();
+    expect(seatButton("F8").querySelector('[data-seat-mark="occupied"]')).not.toBeNull();
+    expect(seatButton("F9").style.backgroundImage).toContain("repeating-linear-gradient");
+
+    // Legend swatches mirror the same non-color markers.
+    const legendItems = screen.getAllByRole("listitem");
+    const selectedLegend = legendItems.find(
+      (item) => item.textContent === getSeatStatusLabel("selected"),
+    );
+    const occupiedLegend = legendItems.find(
+      (item) => item.textContent === getSeatStatusLabel("occupied"),
+    );
+    const unavailableLegend = legendItems.find(
+      (item) => item.textContent === getSeatStatusLabel("unavailable"),
+    );
+
+    expect(selectedLegend?.querySelector('[data-seat-mark="selected"]')).not.toBeNull();
+    expect(occupiedLegend?.querySelector('[data-seat-mark="occupied"]')).not.toBeNull();
+    expect(unavailableLegend?.querySelector("span")?.style.backgroundImage).toContain(
+      "repeating-linear-gradient",
+    );
+  });
+
+  it("announces selected seat count and subtotal via aria-live polite", () => {
+    const seats = buildSeats();
+    const { rerender } = render(
+      <SeatMap seats={seats} selectedSeatIds={[]} activeSeatId={null} onToggleSeat={vi.fn()} />,
+    );
+
+    const live = screen.getByTestId("seat-selection-live");
+    expect(live).toHaveAttribute("aria-live", "polite");
+    expect(live).toHaveTextContent("Belum ada kursi dipilih.");
+
+    rerender(
+      <SeatMap
+        seats={seats}
+        selectedSeatIds={["F7", "F8"]}
+        activeSeatId="F8"
+        onToggleSeat={vi.fn()}
+      />,
+    );
+    expect(live).toHaveTextContent(`2 kursi dipilih, total ${formatRupiah(100000)}.`);
   });
 });

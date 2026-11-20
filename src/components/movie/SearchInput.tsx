@@ -10,7 +10,7 @@ export default function SearchInput({
   placeholder?: string;
 }) {
   return (
-    <label className="flex w-full items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-2 focus-within:border-accent sm:max-w-sm">
+    <label className="flex w-full items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-2 focus-within:border-accent focus-within:ring-2 focus-within:ring-foreground focus-within:ring-offset-2 focus-within:ring-offset-background sm:max-w-sm">
       <svg
         viewBox="0 0 24 24"
         className="size-4 shrink-0 text-muted"

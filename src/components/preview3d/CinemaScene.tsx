@@ -6,6 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   memo,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -415,7 +416,12 @@ function CameraRig({
     };
 
     // Keyboard look-around: arrows nudge the gaze, clamped exactly like dragging.
+    // Escape always blurs the 3D viewport so keyboard users are never trapped.
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        element.blur();
+        return;
+      }
       if (inputLocked()) return;
 
       let { yaw, pitch } = lookTarget.current;
@@ -613,6 +619,7 @@ const CinemaScene = memo(function CinemaScene({
   const controlsRef = useRef<ControlsRef>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const statsListenerRef = useRef<((stats: SceneStats) => void) | null>(null);
+  const descriptionId = useId();
   const debugEnabled = useDebugOverlayEnabled();
   const activeSeat = useMemo(
     () => seats.find((seat) => seat.id === activeSeatId) ?? null,
@@ -621,14 +628,20 @@ const CinemaScene = memo(function CinemaScene({
 
   return (
     // touch-none keeps one-finger drags from scrolling the page; scroll outside stays normal.
-    // Focusable so the arrow keys can turn the gaze in seat view.
+    // Focusable so the arrow keys can turn the gaze in seat view; Escape or Tab exits focus.
     <div
       ref={wrapperRef}
       role="region"
       tabIndex={0}
-      aria-label="Pratinjau 3D studio. Klik dan geser untuk melihat sekeliling; saat mode Seat View, gunakan tombol panah untuk memutar pandangan dari kursi terpilih."
-      className="relative size-full touch-none rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
+      aria-label="Pratinjau 3D studio"
+      aria-describedby={descriptionId}
+      className="relative size-full touch-none rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
+      <p id={descriptionId} className="sr-only">
+        Geser layar dengan mouse atau satu jari untuk melihat sekeliling. Saat mode Seat View,
+        gunakan tombol panah untuk memutar pandangan dari kursi terpilih. Tekan Escape atau Tab
+        untuk keluar dari pratinjau 3D.
+      </p>
       <Canvas dpr={[1, 2]} gl={{ antialias: true }}>
         <color attach="background" args={[SCENE_COLORS.background]} />
         <ResponsiveCamera />

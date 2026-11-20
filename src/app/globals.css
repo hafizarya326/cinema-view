@@ -9,7 +9,8 @@
   --color-border: #26262b;
   --color-foreground: #f5f5f7;
   --color-muted: #9a9aa3;
-  --color-accent: #e50914;
+  --color-accent: #d90914;
+  --color-accent-text: #f87171;
 
   --color-seat-available: #3f3f46;
   --color-seat-selected: #22c55e;
@@ -21,4 +22,27 @@
   --color-hero-to: #7f1d1d;
 
   --radius-card: 1rem;
+}
+
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--color-foreground);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
