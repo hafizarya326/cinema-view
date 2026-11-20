@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { MAX_SEATS_PER_BOOKING } from "@/lib/studio/config";
 import { getBestSeats } from "@/lib/studio/recommend";
 import { useBookingStore } from "@/store/bookingStore";
@@ -10,8 +10,9 @@ const clampCount = (value: number) =>
   Math.min(MAX_SEATS_PER_BOOKING, Math.max(1, Math.trunc(value) || 1));
 
 /** Fills the store with the highest-scoring available seats for the chosen size. */
-export default function SeatRecommender({ seats }: { seats: Seat[] }) {
-  const selectedSeatIds = useBookingStore((state) => state.selectedSeatIds);
+const SeatRecommender = memo(function SeatRecommender({ seats }: { seats: Seat[] }) {
+  // Narrow boolean selector: adding/removing extra seats or switching active seat won't re-render.
+  const hasSelectedSeats = useBookingStore((state) => state.selectedSeatIds.length > 0);
   const selectSeats = useBookingStore((state) => state.selectSeats);
   const [count, setCount] = useState("1");
   const [confirming, setConfirming] = useState(false);
@@ -28,7 +29,7 @@ export default function SeatRecommender({ seats }: { seats: Seat[] }) {
       onSubmit={(event) => {
         event.preventDefault();
         // A light confirmation before an existing selection is thrown away.
-        if (selectedSeatIds.length > 0 && !confirming) setConfirming(true);
+        if (hasSelectedSeats && !confirming) setConfirming(true);
         else apply();
       }}
       className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4"
@@ -80,4 +81,6 @@ export default function SeatRecommender({ seats }: { seats: Seat[] }) {
       )}
     </form>
   );
-}
+});
+
+export default SeatRecommender;

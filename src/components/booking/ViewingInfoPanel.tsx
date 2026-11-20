@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { formatDegrees, formatMeters, formatRupiah, getCategoryLabel } from "@/lib/booking";
 import { VISIBILITY_COLORS } from "@/lib/studio/config";
 import { getBestSeats } from "@/lib/studio/recommend";
@@ -13,7 +13,7 @@ import type { Seat } from "@/types";
  * Viewing numbers come straight from getViewingInfo (src/lib/studio/viewing.ts);
  * nothing is recalculated here, only formatted.
  */
-export default function ViewingInfoPanel({
+const ViewingInfoPanel = memo(function ViewingInfoPanel({
   seats,
   backHref,
 }: {
@@ -21,8 +21,14 @@ export default function ViewingInfoPanel({
   backHref: string;
 }) {
   const activeSeatId = useBookingStore((state) => state.activeSeatId);
-  const seat = seats.find((item) => item.id === activeSeatId);
-  const bestAvailable = useMemo(() => getBestSeats(seats, 1).seats[0], [seats]);
+  const seat = useMemo(
+    () => seats.find((item) => item.id === activeSeatId),
+    [seats, activeSeatId],
+  );
+  const bestAvailableScore = useMemo(() => {
+    const best = getBestSeats(seats, 1).seats[0];
+    return best ? getViewingInfo(best).visibilityScore : null;
+  }, [seats]);
 
   if (!seat) {
     return (
@@ -82,13 +88,15 @@ export default function ViewingInfoPanel({
         </span>
       </div>
 
-      {bestAvailable && (
+      {bestAvailableScore !== null && (
         <p className="rounded-2xl border border-border px-3 py-2 text-xs text-muted">
-          {getViewingInfo(bestAvailable).visibilityScore > info.visibilityScore
-            ? `${getViewingInfo(bestAvailable).visibilityScore - info.visibilityScore} poin di bawah kursi terbaik`
+          {bestAvailableScore > info.visibilityScore
+            ? `${bestAvailableScore - info.visibilityScore} poin di bawah kursi terbaik`
             : "Ini kursi terbaik yang tersedia"}
         </p>
       )}
     </section>
   );
-}
+});
+
+export default ViewingInfoPanel;

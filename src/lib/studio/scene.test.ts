@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import * as THREE from "three";
+import {
+  BoxGeometry,
+  Mesh,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  Texture,
+} from "three";
 import { EYE_HEIGHT, SEAT_HEIGHT } from "./config";
 import { createSeat } from "./seats";
 import { disposeMesh, getSeatColor, getSeatPosition, isWebGLAvailable } from "./scene";
@@ -43,10 +49,10 @@ describe("isWebGLAvailable", () => {
 
 describe("disposeMesh", () => {
   it("disposes geometry, materials and their textures", () => {
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const texture = new THREE.Texture();
-    const material = new THREE.MeshStandardMaterial({ map: texture });
-    const mesh = new THREE.Mesh(geometry, material);
+    const geometry = new BoxGeometry(1, 1, 1);
+    const texture = new Texture();
+    const material = new MeshStandardMaterial({ map: texture });
+    const mesh = new Mesh(geometry, material);
     const geometrySpy = vi.spyOn(geometry, "dispose");
     const materialSpy = vi.spyOn(material, "dispose");
     const textureSpy = vi.spyOn(texture, "dispose");
@@ -59,9 +65,9 @@ describe("disposeMesh", () => {
   });
 
   it("handles a multi-material mesh and a null mesh", () => {
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const materials = [new THREE.MeshBasicMaterial(), new THREE.MeshBasicMaterial()];
-    const mesh = new THREE.Mesh(geometry, materials);
+    const geometry = new BoxGeometry(1, 1, 1);
+    const materials = [new MeshBasicMaterial(), new MeshBasicMaterial()];
+    const mesh = new Mesh(geometry, materials);
     const spies = materials.map((material) => vi.spyOn(material, "dispose"));
 
     disposeMesh(mesh);

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { formatDegrees, formatMeters, formatRupiah, getCategoryLabel } from "@/lib/booking";
 import { getBestPerColumn } from "@/lib/studio/compare";
 import { VISIBILITY_COLORS } from "@/lib/studio/config";
@@ -20,7 +21,7 @@ function BestMark({ label }: { label: string }) {
  * Side-by-side comparison of the selected seats. Every number is formatted from
  * getViewingInfo; nothing is recalculated. Hidden below two seats.
  */
-export default function SeatComparison({
+const SeatComparison = memo(function SeatComparison({
   seats,
   activeSeatId,
   onSelectSeat,
@@ -29,7 +30,11 @@ export default function SeatComparison({
   activeSeatId: string | null;
   onSelectSeat: (seatId: string) => void;
 }) {
-  const best = getBestPerColumn(seats);
+  const best = useMemo(() => getBestPerColumn(seats), [seats]);
+  const rows = useMemo(
+    () => seats.map((seat) => ({ seat, info: getViewingInfo(seat) })),
+    [seats],
+  );
 
   if (seats.length < 2) return null;
 
@@ -72,8 +77,7 @@ export default function SeatComparison({
             </tr>
           </thead>
           <tbody>
-            {seats.map((seat) => {
-              const info = getViewingInfo(seat);
+            {rows.map(({ seat, info }) => {
               const isActive = seat.id === activeSeatId;
 
               return (
@@ -126,4 +130,6 @@ export default function SeatComparison({
       </div>
     </section>
   );
-}
+});
+
+export default SeatComparison;

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import SeatChips from "@/components/booking/SeatChips";
 import { formatRupiah, getSeatsSubtotal } from "@/lib/booking";
 import { MAX_SEATS_PER_BOOKING } from "@/lib/studio/config";
 import type { Seat } from "@/types";
 
-export default function SelectedSeatsPanel({
+const SelectedSeatsPanel = memo(function SelectedSeatsPanel({
   seats,
   activeSeatId,
   onSelectSeat,
@@ -60,4 +61,6 @@ export default function SelectedSeatsPanel({
       </Link>
     </aside>
   );
-}
+});
+
+export default SelectedSeatsPanel;

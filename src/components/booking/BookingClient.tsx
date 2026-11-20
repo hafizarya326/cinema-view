@@ -8,7 +8,50 @@ import { applyBookedSeats, useIsMounted } from "@/lib/bookings";
 import { formatDateLabel, showtimesForDate } from "@/lib/showtimes";
 import { generateSeats } from "@/lib/studio/seats";
 import { useBookingStore } from "@/store/bookingStore";
-import type { Movie, Showtime } from "@/types";
+import type { Movie, Seat, Showtime } from "@/types";
+
+function BookingSeatSection({ hasShowtime, seats }: { hasShowtime: boolean; seats: Seat[] }) {
+  const selectedSeatIds = useBookingStore((state) => state.selectedSeatIds);
+  const activeSeatId = useBookingStore((state) => state.activeSeatId);
+  const toggleSeat = useBookingStore((state) => state.toggleSeat);
+  const setActiveSeat = useBookingStore((state) => state.setActiveSeat);
+  const clearSeats = useBookingStore((state) => state.clearSeats);
+
+  const selectedSeats = useMemo(
+    () => seats.filter((seat) => selectedSeatIds.includes(seat.id)),
+    [seats, selectedSeatIds],
+  );
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <section className="flex min-w-0 flex-col gap-3">
+        <h2 className="text-sm font-semibold text-muted">Pilih kursi</h2>
+        {hasShowtime ? (
+          <div className="flex min-w-0 flex-col gap-4">
+            <SeatRecommender seats={seats} />
+            <SeatMap
+              seats={seats}
+              selectedSeatIds={selectedSeatIds}
+              activeSeatId={activeSeatId}
+              onToggleSeat={toggleSeat}
+            />
+          </div>
+        ) : (
+          <div className="grid place-items-center rounded-2xl border border-dashed border-border bg-surface px-4 py-16 text-sm text-muted">
+            Pilih jam tayang dulu untuk melihat peta kursi.
+          </div>
+        )}
+      </section>
+
+      <SelectedSeatsPanel
+        seats={selectedSeats}
+        activeSeatId={activeSeatId}
+        onSelectSeat={setActiveSeat}
+        onClear={clearSeats}
+      />
+    </div>
+  );
+}
 
 export default function BookingClient({
   movie,
@@ -26,11 +69,6 @@ export default function BookingClient({
   const setMovie = useBookingStore((state) => state.setMovie);
   const setShowtime = useBookingStore((state) => state.setShowtime);
   const storedShowtime = useBookingStore((state) => state.showtime);
-  const selectedSeatIds = useBookingStore((state) => state.selectedSeatIds);
-  const activeSeatId = useBookingStore((state) => state.activeSeatId);
-  const toggleSeat = useBookingStore((state) => state.toggleSeat);
-  const setActiveSeat = useBookingStore((state) => state.setActiveSeat);
-  const clearSeats = useBookingStore((state) => state.clearSeats);
 
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const mounted = useIsMounted();
@@ -53,10 +91,6 @@ export default function BookingClient({
     const base = generateSeats(showtime.id);
     return mounted ? applyBookedSeats(base, showtime.id) : base;
   }, [showtime, mounted]);
-  const selectedSeats = useMemo(
-    () => seats.filter((seat) => selectedSeatIds.includes(seat.id)),
-    [seats, selectedSeatIds],
-  );
   const times = showtimesForDate(showtimes, movie.id, dateKey);
 
   const pickDate = (key: string) => {
@@ -122,33 +156,7 @@ export default function BookingClient({
         )}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <section className="flex min-w-0 flex-col gap-3">
-          <h2 className="text-sm font-semibold text-muted">Pilih kursi</h2>
-          {showtime ? (
-            <div className="flex min-w-0 flex-col gap-4">
-              <SeatRecommender seats={seats} />
-              <SeatMap
-                seats={seats}
-                selectedSeatIds={selectedSeatIds}
-                activeSeatId={activeSeatId}
-                onToggleSeat={toggleSeat}
-              />
-            </div>
-          ) : (
-            <div className="grid place-items-center rounded-2xl border border-dashed border-border bg-surface px-4 py-16 text-sm text-muted">
-              Pilih jam tayang dulu untuk melihat peta kursi.
-            </div>
-          )}
-        </section>
-
-        <SelectedSeatsPanel
-          seats={selectedSeats}
-          activeSeatId={activeSeatId}
-          onSelectSeat={setActiveSeat}
-          onClear={clearSeats}
-        />
-      </div>
+      <BookingSeatSection hasShowtime={Boolean(showtime)} seats={seats} />
     </div>
   );
 }

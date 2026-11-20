@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatRupiah, getCategoryLabel, getSeatAriaLabel, getSeatStatusLabel } from "@/lib/booking";
 import { CATEGORY_PRICES, ROW_LABELS, SEATS_PER_ROW, VISIBILITY_COLORS } from "@/lib/studio/config";
 import { getViewingInfo } from "@/lib/studio/viewing";
-import type { Seat, SeatCategory, SeatStatus } from "@/types";
+import type { Seat, SeatCategory, SeatStatus, ViewingInfo } from "@/types";
 
 const SEAT_BG: Record<SeatStatus, string> = {
   available: "bg-seat-available",
@@ -24,7 +24,72 @@ const CATEGORY_LEGEND: SeatCategory[] = ["front", "standard", "premium"];
 /** Keys handled by the roving tabindex; Enter/Space keep the native button behaviour. */
 const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
 
-export default function SeatMap({
+const SeatButton = memo(function SeatButton({
+  seat,
+  isSelected,
+  isActive,
+  isTabbable,
+  visibilityLabel,
+  onToggleSeat,
+  onFocusSeat,
+  onMoveFocus,
+}: {
+  seat: Seat;
+  isSelected: boolean;
+  isActive: boolean;
+  isTabbable: boolean;
+  visibilityLabel: ViewingInfo["visibilityLabel"];
+  onToggleSeat: (seat: Seat) => void;
+  onFocusSeat: (seatId: string) => void;
+  onMoveFocus: (seat: Seat, key: string) => void;
+}) {
+  const status: SeatStatus = isSelected ? "selected" : seat.status;
+  const blocked = status === "occupied" || status === "unavailable";
+  // Keep the tooltip inside the scroll area at both ends of a row.
+  const tooltipAlign =
+    seat.number <= 3
+      ? "left-0"
+      : seat.number >= SEATS_PER_ROW - 2
+        ? "right-0"
+        : "left-1/2 -translate-x-1/2";
+
+  return (
+    <button
+      type="button"
+      data-seat-id={seat.id}
+      tabIndex={isTabbable ? 0 : -1}
+      aria-label={getSeatAriaLabel(seat, isSelected)}
+      aria-pressed={isSelected}
+      aria-disabled={blocked}
+      onClick={() => {
+        if (!blocked) onToggleSeat(seat);
+      }}
+      onFocus={() => onFocusSeat(seat.id)}
+      onKeyDown={(event) => {
+        if (!NAV_KEYS.has(event.key)) return;
+        event.preventDefault();
+        onMoveFocus(seat, event.key);
+      }}
+      className={`group relative size-10 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface lg:size-7 ${
+        SEAT_BG[status]
+      } ${blocked ? "cursor-not-allowed opacity-80" : "hover:scale-110"} ${
+        isActive ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : ""
+      }`}
+      style={status === "unavailable" ? UNAVAILABLE_PATTERN : undefined}
+    >
+      {/* CSS-only tooltip: shows on hover or keyboard focus, never blocks clicks. */}
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute bottom-full z-10 mb-2 hidden w-max rounded-xl border border-border bg-background px-2 py-1 text-[10px] leading-tight text-foreground shadow-lg group-hover:block group-focus-visible:block ${tooltipAlign}`}
+      >
+        {getCategoryLabel(seat.category)} · {formatRupiah(seat.price)} ·{" "}
+        <span style={{ color: VISIBILITY_COLORS[visibilityLabel] }}>{visibilityLabel}</span>
+      </span>
+    </button>
+  );
+});
+
+const SeatMap = memo(function SeatMap({
   seats,
   selectedSeatIds,
   activeSeatId,
@@ -57,12 +122,21 @@ export default function SeatMap({
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  const rows = ROW_LABELS.map((row) =>
-    seats.filter((seat) => seat.row === row).sort((a, b) => a.number - b.number),
+  const rows = useMemo(
+    () =>
+      ROW_LABELS.map((row) =>
+        seats.filter((seat) => seat.row === row).sort((a, b) => a.number - b.number),
+      ),
+    [seats],
   );
+  const visibilityById = useMemo(
+    () => new Map(seats.map((seat) => [seat.id, getViewingInfo(seat).visibilityLabel])),
+    [seats],
+  );
+  const selectedSet = useMemo(() => new Set(selectedSeatIds), [selectedSeatIds]);
 
   /** Arrow / Home / End move the roving focus; selection is untouched. */
-  const moveFocus = (seat: Seat, key: string) => {
+  const moveFocus = useCallback((seat: Seat, key: string) => {
     const rowIndex = ROW_LABELS.indexOf(seat.row);
     let nextRow = rowIndex;
     let nextNumber = seat.number;
@@ -77,7 +151,7 @@ export default function SeatMap({
     const nextId = `${ROW_LABELS[nextRow]}${nextNumber}`;
     setFocusId(nextId);
     gridRef.current?.querySelector<HTMLButtonElement>(`[data-seat-id="${nextId}"]`)?.focus();
-  };
+  }, []);
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -106,57 +180,19 @@ export default function SeatMap({
             {rows.map((rowSeats, rowIndex) => (
               <div key={ROW_LABELS[rowIndex]} className="mb-1 flex items-center gap-1">
                 <span className="w-4 shrink-0 text-xs text-muted">{ROW_LABELS[rowIndex]}</span>
-                {rowSeats.map((seat) => {
-                  const isSelected = selectedSeatIds.includes(seat.id);
-                  const status: SeatStatus = isSelected ? "selected" : seat.status;
-                  const blocked = status === "occupied" || status === "unavailable";
-                  const info = getViewingInfo(seat);
-                  // Keep the tooltip inside the scroll area at both ends of a row.
-                  const tooltipAlign =
-                    seat.number <= 3
-                      ? "left-0"
-                      : seat.number >= SEATS_PER_ROW - 2
-                        ? "right-0"
-                        : "left-1/2 -translate-x-1/2";
-
-                  return (
-                    <button
-                      key={seat.id}
-                      type="button"
-                      data-seat-id={seat.id}
-                      tabIndex={seat.id === tabbableId ? 0 : -1}
-                      aria-label={getSeatAriaLabel(seat, isSelected)}
-                      aria-pressed={isSelected}
-                      aria-disabled={blocked}
-                      onClick={() => {
-                        if (!blocked) onToggleSeat(seat);
-                      }}
-                      onFocus={() => setFocusId(seat.id)}
-                      onKeyDown={(event) => {
-                        if (!NAV_KEYS.has(event.key)) return;
-                        event.preventDefault();
-                        moveFocus(seat, event.key);
-                      }}
-                      className={`group relative size-10 shrink-0 rounded-md transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface lg:size-7 ${
-                        SEAT_BG[status]
-                      } ${blocked ? "cursor-not-allowed opacity-80" : "hover:scale-110"} ${
-                        seat.id === activeSeatId ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : ""
-                      }`}
-                      style={status === "unavailable" ? UNAVAILABLE_PATTERN : undefined}
-                    >
-                      {/* CSS-only tooltip: shows on hover or keyboard focus, never blocks clicks. */}
-                      <span
-                        aria-hidden="true"
-                        className={`pointer-events-none absolute bottom-full z-10 mb-2 hidden w-max rounded-xl border border-border bg-background px-2 py-1 text-[10px] leading-tight text-foreground shadow-lg group-hover:block group-focus-visible:block ${tooltipAlign}`}
-                      >
-                        {getCategoryLabel(seat.category)} · {formatRupiah(seat.price)} ·{" "}
-                        <span style={{ color: VISIBILITY_COLORS[info.visibilityLabel] }}>
-                          {info.visibilityLabel}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
+                {rowSeats.map((seat) => (
+                  <SeatButton
+                    key={seat.id}
+                    seat={seat}
+                    isSelected={selectedSet.has(seat.id)}
+                    isActive={seat.id === activeSeatId}
+                    isTabbable={seat.id === tabbableId}
+                    visibilityLabel={visibilityById.get(seat.id) ?? "Fair"}
+                    onToggleSeat={onToggleSeat}
+                    onFocusSeat={setFocusId}
+                    onMoveFocus={moveFocus}
+                  />
+                ))}
               </div>
             ))}
           </div>
@@ -187,4 +223,6 @@ export default function SeatMap({
       </ul>
     </div>
   );
-}
+});
+
+export default SeatMap;

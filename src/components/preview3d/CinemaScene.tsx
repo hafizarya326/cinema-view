@@ -1,9 +1,29 @@
 "use client";
 
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei/core/OrbitControls";
+import { PerspectiveCamera } from "@react-three/drei/core/PerspectiveCamera";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";import type { ComponentRef, RefObject } from "react";
-import * as THREE from "three";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import type { ComponentRef, RefObject } from "react";
+import {
+  BoxGeometry,
+  CanvasTexture,
+  Color,
+  Matrix4,
+  SRGBColorSpace,
+  Vector3,
+  type BufferGeometry,
+  type InstancedMesh,
+  type Mesh,
+} from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
   LOOK_DAMPING,
@@ -60,11 +80,17 @@ import {
 import { getSeatZ } from "@/lib/studio/seats";
 import type { Seat } from "@/types";
 
+const FLOOR_SLAB_BOXES = getFloorSlabBoxes();
+const WALL_BOXES = getWallBoxes();
+const CEILING_BOX = getCeilingBox();
+const SCREEN_FRAME_BOXES = getScreenFrameBoxes();
+const STEP_LIGHT_BOXES = getStepLightBoxes();
+
 /** Dark carpet floor, one stepped slab per row (front row stays at floor level). */
-function SteppedFloor() {
+const SteppedFloor = memo(function SteppedFloor() {
   return (
     <group>
-      {getFloorSlabBoxes().map((box, rowIndex) => (
+      {FLOOR_SLAB_BOXES.map((box, rowIndex) => (
         <mesh key={ROW_LABELS[rowIndex]} position={box.center}>
           <boxGeometry args={box.size} />
           <meshStandardMaterial color={SCENE_COLORS.carpet} roughness={1} />
@@ -72,15 +98,13 @@ function SteppedFloor() {
       ))}
     </group>
   );
-}
+});
 
 /** Paneled walls (side vs back tone) plus a dark ceiling. */
-function RoomShell() {
-  const ceiling = getCeilingBox();
-
+const RoomShell = memo(function RoomShell() {
   return (
     <group>
-      {getWallBoxes().map((box, index) => (
+      {WALL_BOXES.map((box, index) => (
         <mesh key={index} position={box.center}>
           <boxGeometry args={box.size} />
           <meshStandardMaterial
@@ -89,16 +113,16 @@ function RoomShell() {
           />
         </mesh>
       ))}
-      <mesh position={ceiling.center}>
-        <boxGeometry args={ceiling.size} />
+      <mesh position={CEILING_BOX.center}>
+        <boxGeometry args={CEILING_BOX.size} />
         <meshStandardMaterial color={SCENE_COLORS.ceiling} roughness={1} />
       </mesh>
     </group>
   );
-}
+});
 
 /** Procedural screen surface: vertical gradient plus test-pattern bars. */
-function createScreenTexture(): THREE.CanvasTexture | null {
+function createScreenTexture(): CanvasTexture | null {
   if (typeof document === "undefined") return null;
 
   const canvas = document.createElement("canvas");
@@ -120,14 +144,14 @@ function createScreenTexture(): THREE.CanvasTexture | null {
     context.fillRect(index * barWidth, canvas.height * 0.72, barWidth, canvas.height * 0.28);
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
   return texture;
 }
 
 /** Emissive screen with a thin black frame that stays outside the visible area. */
-function ScreenPanel() {
-  const meshRef = useRef<THREE.Mesh>(null);
+const ScreenPanel = memo(function ScreenPanel() {
+  const meshRef = useRef<Mesh>(null);
   const texture = useMemo(() => createScreenTexture(), []);
 
   useEffect(() => {
@@ -149,7 +173,7 @@ function ScreenPanel() {
         />
       </mesh>
 
-      {getScreenFrameBoxes().map((box, index) => (
+      {SCREEN_FRAME_BOXES.map((box, index) => (
         <mesh key={index} position={box.center}>
           <boxGeometry args={box.size} />
           <meshStandardMaterial color={SCENE_COLORS.screenFrame} roughness={0.8} />
@@ -157,24 +181,23 @@ function ScreenPanel() {
       ))}
     </group>
   );
-}
+});
 
 /** One instanced mesh: a dim strip light on every step edge. */
-function StepLights() {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  const matrix = useMemo(() => new THREE.Matrix4(), []);
-  const boxes = useMemo(() => getStepLightBoxes(), []);
+const StepLights = memo(function StepLights() {
+  const meshRef = useRef<InstancedMesh>(null);
+  const matrix = useMemo(() => new Matrix4(), []);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
 
-    boxes.forEach((box, index) => {
+    STEP_LIGHT_BOXES.forEach((box, index) => {
       matrix.setPosition(...box.center);
       mesh.setMatrixAt(index, matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
-  }, [boxes, matrix]);
+  }, [matrix]);
 
   useEffect(() => {
     const mesh = meshRef.current;
@@ -182,8 +205,8 @@ function StepLights() {
   }, []);
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, boxes.length]}>
-      <boxGeometry args={boxes[0].size} />
+    <instancedMesh ref={meshRef} args={[undefined, undefined, STEP_LIGHT_BOXES.length]}>
+      <boxGeometry args={STEP_LIGHT_BOXES[0].size} />
       <meshStandardMaterial
         color={SCENE_COLORS.stepLight}
         emissive={SCENE_COLORS.stepLight}
@@ -192,9 +215,9 @@ function StepLights() {
       />
     </instancedMesh>
   );
-}
+});
 
-function Lights() {
+const Lights = memo(function Lights() {
   return (
     <>
       <ambientLight intensity={0.3} />
@@ -214,12 +237,12 @@ function Lights() {
       />
     </>
   );
-}
+});
 
 /** Merge cushion, backrest, and both armrests into one geometry (single draw call). */
-function createChairGeometry(): THREE.BufferGeometry {
+function createChairGeometry(): BufferGeometry {
   const parts = getSeatPartBoxes().map((box) => {
-    const geometry = new THREE.BoxGeometry(...box.size);
+    const geometry = new BoxGeometry(...box.size);
     geometry.translate(...box.center);
     return geometry;
   });
@@ -230,21 +253,28 @@ function createChairGeometry(): THREE.BufferGeometry {
 }
 
 /** All 140 seats in a single InstancedMesh, tinted per status. */
-function Seats({ seats, selectedSeatIds }: { seats: Seat[]; selectedSeatIds: string[] }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
+const Seats = memo(function Seats({
+  seats,
+  selectedSeatIds,
+}: {
+  seats: Seat[];
+  selectedSeatIds: string[];
+}) {
+  const meshRef = useRef<InstancedMesh>(null);
   // Scratch objects, allocated once instead of on every seat update.
-  const matrix = useMemo(() => new THREE.Matrix4(), []);
-  const color = useMemo(() => new THREE.Color(), []);
+  const matrix = useMemo(() => new Matrix4(), []);
+  const color = useMemo(() => new Color(), []);
   const geometry = useMemo(() => createChairGeometry(), []);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
 
+    const selectedSet = new Set(selectedSeatIds);
     seats.forEach((seat, index) => {
       matrix.setPosition(...getSeatPosition(seat));
       mesh.setMatrixAt(index, matrix);
-      mesh.setColorAt(index, color.set(getSeatColor(seat, selectedSeatIds.includes(seat.id))));
+      mesh.setColorAt(index, color.set(getSeatColor(seat, selectedSet.has(seat.id))));
     });
 
     mesh.instanceMatrix.needsUpdate = true;
@@ -262,12 +292,16 @@ function Seats({ seats, selectedSeatIds }: { seats: Seat[]; selectedSeatIds: str
       <meshStandardMaterial color="#FFFFFF" roughness={0.7} />
     </instancedMesh>
   );
-}
+});
 
 type ControlsRef = ComponentRef<typeof OrbitControls>;
 
 /** Reports a lost WebGL context so the page can fall back to the 2D seat map. */
-function ContextWatcher({ onContextLost }: { onContextLost?: () => void }) {
+const ContextWatcher = memo(function ContextWatcher({
+  onContextLost,
+}: {
+  onContextLost?: () => void;
+}) {
   const gl = useThree((state) => state.gl);
 
   useEffect(() => {
@@ -283,7 +317,7 @@ function ContextWatcher({ onContextLost }: { onContextLost?: () => void }) {
   }, [gl, onContextLost]);
 
   return null;
-}
+});
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -329,7 +363,7 @@ function CameraRig({
   // Resolved once per mode/seat change; the frame loop never allocates vectors.
   const view = useMemo(() => getModeView(mode, seat), [mode, seat]);
   const eye = useMemo(() => getModeView("seat", seat).position, [seat]);
-  const gazeTarget = useMemo(() => new THREE.Vector3(), []);
+  const gazeTarget = useMemo(() => new Vector3(), []);
 
   // New seat or mode: transition from the current pose and ease the gaze back to the default.
   useEffect(() => {
@@ -455,7 +489,7 @@ function CameraRig({
  * Default camera. CAMERA_FOV is the horizontal reference angle, so this widens
  * the vertical FOV on portrait viewports to keep the whole screen width in view.
  */
-function ResponsiveCamera() {
+const ResponsiveCamera = memo(function ResponsiveCamera() {
   const size = useThree((state) => state.size);
   const aspect = size.width / Math.max(1, size.height);
 
@@ -468,9 +502,102 @@ function ResponsiveCamera() {
       far={CAMERA_FAR}
     />
   );
+});
+
+interface SceneStats {
+  fps: number;
+  calls: number;
+  triangles: number;
+  geometries: number;
+  textures: number;
 }
 
-export default function CinemaScene({
+const DEBUG_SAMPLE_INTERVAL_MS = 400;
+const noopSubscribe = () => () => {};
+
+/** Active only with ?debug=1; server snapshot is always false to prevent hydration mismatch. */
+function useDebugOverlayEnabled(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => new URLSearchParams(window.location.search).get("debug") === "1",
+    () => false,
+  );
+}
+
+/** Samples renderer.info and FPS inside the render loop. Mounted only when ?debug=1. */
+const SceneStatsProbe = memo(function SceneStatsProbe({
+  listenerRef,
+}: {
+  listenerRef: RefObject<((stats: SceneStats) => void) | null>;
+}) {
+  const bucket = useRef({ frames: 0, lastTime: 0 });
+
+  useFrame((state) => {
+    const now = performance.now();
+    const current = bucket.current;
+    if (current.lastTime === 0) {
+      current.lastTime = now;
+      return;
+    }
+
+    current.frames += 1;
+    const elapsed = now - current.lastTime;
+    if (elapsed < DEBUG_SAMPLE_INTERVAL_MS) return;
+
+    const { render, memory } = state.gl.info;
+    listenerRef.current?.({
+      fps: Math.round((current.frames * 1000) / elapsed),
+      calls: render.calls,
+      triangles: render.triangles,
+      geometries: memory.geometries,
+      textures: memory.textures,
+    });
+
+    current.frames = 0;
+    current.lastTime = now;
+  });
+
+  return null;
+});
+
+/** Small HUD displaying renderer.info metrics and FPS; updates stay isolated from CinemaScene. */
+const SceneDebugOverlay = memo(function SceneDebugOverlay({
+  listenerRef,
+}: {
+  listenerRef: RefObject<((stats: SceneStats) => void) | null>;
+}) {
+  const [stats, setStats] = useState<SceneStats | null>(null);
+
+  useEffect(() => {
+    listenerRef.current = setStats;
+    return () => {
+      listenerRef.current = null;
+    };
+  }, [listenerRef]);
+
+  return (
+    <aside
+      data-testid="scene-debug-overlay"
+      aria-label="Statistik scene 3D"
+      className="pointer-events-none absolute top-3 left-3 z-10 rounded-xl border border-border bg-background/85 px-3 py-2 font-mono text-xs leading-relaxed text-foreground backdrop-blur-sm"
+    >
+      <dl className="grid grid-cols-[auto_auto] gap-x-3">
+        <dt className="text-muted">FPS</dt>
+        <dd className="text-right tabular-nums">{stats ? stats.fps : "—"}</dd>
+        <dt className="text-muted">Draw call</dt>
+        <dd className="text-right tabular-nums">{stats ? stats.calls : "—"}</dd>
+        <dt className="text-muted">Triangle</dt>
+        <dd className="text-right tabular-nums">{stats ? stats.triangles : "—"}</dd>
+        <dt className="text-muted">Geometri</dt>
+        <dd className="text-right tabular-nums">{stats ? stats.geometries : "—"}</dd>
+        <dt className="text-muted">Texture</dt>
+        <dd className="text-right tabular-nums">{stats ? stats.textures : "—"}</dd>
+      </dl>
+    </aside>
+  );
+});
+
+const CinemaScene = memo(function CinemaScene({
   seats,
   selectedSeatIds,
   activeSeatId,
@@ -485,6 +612,8 @@ export default function CinemaScene({
 }) {
   const controlsRef = useRef<ControlsRef>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const statsListenerRef = useRef<((stats: SceneStats) => void) | null>(null);
+  const debugEnabled = useDebugOverlayEnabled();
   const activeSeat = useMemo(
     () => seats.find((seat) => seat.id === activeSeatId) ?? null,
     [seats, activeSeatId],
@@ -498,7 +627,7 @@ export default function CinemaScene({
       role="region"
       tabIndex={0}
       aria-label="Pratinjau 3D studio. Klik dan geser untuk melihat sekeliling; saat mode Seat View, gunakan tombol panah untuk memutar pandangan dari kursi terpilih."
-      className="size-full touch-none rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
+      className="relative size-full touch-none rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
     >
       <Canvas dpr={[1, 2]} gl={{ antialias: true }}>
         <color attach="background" args={[SCENE_COLORS.background]} />
@@ -516,6 +645,7 @@ export default function CinemaScene({
           controlsRef={controlsRef}
           wrapperRef={wrapperRef}
         />
+        {debugEnabled && <SceneStatsProbe listenerRef={statsListenerRef} />}
         {mode === "overview" && (
           <OrbitControls
             ref={controlsRef}
@@ -529,6 +659,9 @@ export default function CinemaScene({
           />
         )}
       </Canvas>
+      {debugEnabled && <SceneDebugOverlay listenerRef={statsListenerRef} />}
     </div>
   );
-}
+});
+
+export default CinemaScene;

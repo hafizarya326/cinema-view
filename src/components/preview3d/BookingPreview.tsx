@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import SeatChips from "@/components/booking/SeatChips";
 import SeatComparison from "@/components/booking/SeatComparison";
 import ViewingInfoPanel from "@/components/booking/ViewingInfoPanel";
@@ -14,6 +14,7 @@ import type { CameraMode } from "@/lib/studio/camera";
 import { isWebGLAvailable } from "@/lib/studio/scene";
 import { generateSeats } from "@/lib/studio/seats";
 import { useBookingStore } from "@/store/bookingStore";
+import type { Seat } from "@/types";
 
 const CinemaScene = dynamic(() => import("@/components/preview3d/CinemaScene"), {
   ssr: false,
@@ -46,6 +47,78 @@ function MissingSchedule() {
   );
 }
 
+const PreviewSeatChips = memo(function PreviewSeatChips({
+  seats,
+  onSelect,
+}: {
+  seats: Seat[];
+  onSelect: (seatId: string) => void;
+}) {
+  const activeSeatId = useBookingStore((state) => state.activeSeatId);
+  return <SeatChips seats={seats} activeSeatId={activeSeatId} onSelect={onSelect} />;
+});
+
+const PreviewSeatComparison = memo(function PreviewSeatComparison({
+  seats,
+  onSelectSeat,
+}: {
+  seats: Seat[];
+  onSelectSeat: (seatId: string) => void;
+}) {
+  const activeSeatId = useBookingStore((state) => state.activeSeatId);
+  return <SeatComparison seats={seats} activeSeatId={activeSeatId} onSelectSeat={onSelectSeat} />;
+});
+
+const PreviewCinemaScene = memo(function PreviewCinemaScene({
+  seats,
+  selectedSeatIds,
+  mode,
+  onContextLost,
+}: {
+  seats: Seat[];
+  selectedSeatIds: string[];
+  mode: CameraMode;
+  onContextLost: () => void;
+}) {
+  const activeSeatId = useBookingStore((state) => state.activeSeatId);
+  return (
+    <CinemaScene
+      seats={seats}
+      selectedSeatIds={selectedSeatIds}
+      activeSeatId={activeSeatId}
+      mode={mode}
+      onContextLost={onContextLost}
+    />
+  );
+});
+
+const PreviewSeatMapFallback = memo(function PreviewSeatMapFallback({
+  message,
+  seats,
+  selectedSeatIds,
+  onToggleSeat,
+}: {
+  message: string;
+  seats: Seat[];
+  selectedSeatIds: string[];
+  onToggleSeat: (seat: Seat) => void;
+}) {
+  const activeSeatId = useBookingStore((state) => state.activeSeatId);
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
+        {message}
+      </p>
+      <SeatMap
+        seats={seats}
+        selectedSeatIds={selectedSeatIds}
+        activeSeatId={activeSeatId}
+        onToggleSeat={onToggleSeat}
+      />
+    </div>
+  );
+});
+
 export default function BookingPreview() {
   const hydrated = useSyncExternalStore(
     (onChange) => useBookingStore.persist.onFinishHydration(onChange),
@@ -54,7 +127,8 @@ export default function BookingPreview() {
   );
   const showtime = useBookingStore((state) => state.showtime);
   const selectedSeatIds = useBookingStore((state) => state.selectedSeatIds);
-  const activeSeatId = useBookingStore((state) => state.activeSeatId);
+  // Narrow boolean selector: switching active seat between selected seats won't re-render this shell.
+  const hasActiveSeat = useBookingStore((state) => state.activeSeatId !== null);
   const toggleSeat = useBookingStore((state) => state.toggleSeat);
   const setActiveSeat = useBookingStore((state) => state.setActiveSeat);
   const [webglAvailable] = useState(isWebGLAvailable);
@@ -78,29 +152,36 @@ export default function BookingPreview() {
     [seats, selectedSeatIds],
   );
   // null means "follow the active seat": a stored selection opens in seat view.
-  const mode: CameraMode = pickedMode ?? (activeSeatId ? "seat" : "overview");
+  const mode: CameraMode = pickedMode ?? (hasActiveSeat ? "seat" : "overview");
 
-  // Wait for sessionStorage before rendering seats, so nothing flashes empty.
-  if (!hydrated) return <Loading label="Memuat data kursi..." />;
-  if (!showtime) return <MissingSchedule />;
+  const handleContextLost = useCallback(() => setSceneFailed(true), []);
+  const handleSelectChip = useCallback(
+    (seatId: string) => {
+      setActiveSeat(seatId);
+      setPickedMode((prev) => (prev === "overview" ? "seat" : prev));
+    },
+    [setActiveSeat],
+  );
 
   // Shown when WebGL is missing, when the scene crashes, or when the context is lost.
   const fallbackMessage = webglAvailable
     ? "Tampilan 3D berhenti berjalan, jadi kami menampilkan peta kursi 2D."
     : "WebGL tidak tersedia di perangkat ini, jadi kami menampilkan peta kursi 2D.";
-  const seatMapFallback = (
-    <div className="flex flex-col gap-4">
-      <p className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
-        {fallbackMessage}
-      </p>
-      <SeatMap
+  const seatMapFallback = useMemo(
+    () => (
+      <PreviewSeatMapFallback
+        message={fallbackMessage}
         seats={seats}
         selectedSeatIds={selectedSeatIds}
-        activeSeatId={activeSeatId}
         onToggleSeat={toggleSeat}
       />
-    </div>
+    ),
+    [fallbackMessage, seats, selectedSeatIds, toggleSeat],
   );
+
+  // Wait for sessionStorage before rendering seats, so nothing flashes empty.
+  if (!hydrated) return <Loading label="Memuat data kursi..." />;
+  if (!showtime) return <MissingSchedule />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,7 +215,7 @@ export default function BookingPreview() {
               type="button"
               onClick={() => setPickedMode(item)}
               aria-pressed={mode === item}
-              disabled={item === "seat" && !activeSeatId}
+              disabled={item === "seat" && !hasActiveSeat}
               className={`rounded-xl px-4 py-1.5 transition-colors ${
                 mode === item ? "bg-accent text-foreground" : "text-muted hover:text-foreground"
               } disabled:cursor-not-allowed disabled:opacity-40`}
@@ -145,14 +226,7 @@ export default function BookingPreview() {
         </div>
 
         {selectedSeats.length > 0 && (
-          <SeatChips
-            seats={selectedSeats}
-            activeSeatId={activeSeatId}
-            onSelect={(seatId) => {
-              setActiveSeat(seatId);
-              setPickedMode("seat");
-            }}
-          />
+          <PreviewSeatChips seats={selectedSeats} onSelect={handleSelectChip} />
         )}
       </div>
 
@@ -174,12 +248,11 @@ export default function BookingPreview() {
           ) : (
             <SceneErrorBoundary fallback={seatMapFallback}>
               <div className="h-[60vh] min-h-90 overflow-hidden rounded-2xl border border-border bg-surface">
-                <CinemaScene
+                <PreviewCinemaScene
                   seats={seats}
                   selectedSeatIds={selectedSeatIds}
-                  activeSeatId={activeSeatId}
                   mode={mode}
-                  onContextLost={() => setSceneFailed(true)}
+                  onContextLost={handleContextLost}
                 />
               </div>
             </SceneErrorBoundary>
@@ -190,11 +263,7 @@ export default function BookingPreview() {
       </div>
 
       {/* Outside the touch-none canvas wrapper: horizontal scroll stays inside this box. */}
-      <SeatComparison
-        seats={selectedSeats}
-        activeSeatId={activeSeatId}
-        onSelectSeat={setActiveSeat}
-      />
+      <PreviewSeatComparison seats={selectedSeats} onSelectSeat={setActiveSeat} />
     </div>
   );
 }
